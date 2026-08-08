@@ -1,26 +1,260 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  /* shadcn semantic tokens */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-mono-family);
+  --font-mono: var(--font-mono-family);
+  --font-display: var(--font-display-family);
+  --font-body: var(--font-body-family);
+  --font-official: var(--font-official-family);
+  --font-heading: var(--font-display-family);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* brand tokens — The Signal Pass */
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-ink-faint: var(--ink-faint);
+  --color-paper: var(--paper);
+  --color-paper-raised: var(--paper-raised);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-stamp: var(--stamp);
+  --color-stamp-soft: var(--stamp-soft);
+  --color-gold: var(--gold);
+  --color-gold-soft: var(--gold-soft);
+  --color-teal: var(--teal);
+  --color-teal-soft: var(--teal-soft);
+  --color-noise: var(--noise);
+  --color-signal: var(--signal);
+  --color-alpha: var(--alpha);
+  --color-mono-surface: var(--mono-surface);
 }
 
+:root {
+  /* brand palette — light (paper) */
+  --ink: #1c1a15;
+  --ink-soft: #5b5544;
+  /* Darkened from the original #8b8371 — measured at 3.0–3.3:1 against
+     paper/paper-raised (Lighthouse a11y audit), below WCAG AA's 4.5:1 for
+     normal text. This still reads as the faintest tier in the hierarchy,
+     just no longer fails contrast to do it. */
+  --ink-faint: #6a634f;
+  --paper: #ece7d9;
+  --paper-raised: #f5f0e2;
+  --line: #c9c0a8;
+  --line-strong: #a89d80;
+  --stamp: #a23b26;
+  --stamp-soft: #e4cfc0;
+  --gold: #8c6a2f;
+  --gold-soft: #e4d6ae;
+  --teal: #2a5753;
+  --teal-soft: #cfddd9;
+  --noise: #7c7568;
+  --signal: #a23b26;
+  --alpha: #8c6a2f;
+  --mono-surface: #e1d9c4;
+
+  /* shadcn semantic tokens, mapped onto the brand palette */
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --card: var(--paper-raised);
+  --card-foreground: var(--ink);
+  --popover: var(--paper-raised);
+  --popover-foreground: var(--ink);
+  --primary: var(--ink);
+  --primary-foreground: var(--paper);
+  --secondary: var(--paper-raised);
+  --secondary-foreground: var(--ink);
+  --muted: var(--mono-surface);
+  --muted-foreground: var(--ink-soft);
+  --accent: var(--stamp-soft);
+  --accent-foreground: var(--ink);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: var(--line);
+  --input: var(--line);
+  --ring: var(--stamp);
+  --chart-1: var(--stamp);
+  --chart-2: var(--gold);
+  --chart-3: var(--teal);
+  --chart-4: var(--ink-soft);
+  --chart-5: var(--ink-faint);
+  /* hard edges over rounded-lg softness — a deliberate brand choice, see the
+     art-direction audit ("glass card / blur shadow" was cut) */
+  --radius: 0px;
+  --sidebar: var(--paper-raised);
+  --sidebar-foreground: var(--ink);
+  --sidebar-primary: var(--ink);
+  --sidebar-primary-foreground: var(--paper);
+  --sidebar-accent: var(--stamp-soft);
+  --sidebar-accent-foreground: var(--ink);
+  --sidebar-border: var(--line);
+  --sidebar-ring: var(--stamp);
+}
+
+/*
+ * Nothing in this app ever adds a `.dark` class — there's no theme
+ * toggle — so without this media-query block, every rule below was dead:
+ * defined, never reachable, and the app silently ignored the OS's actual
+ * dark-mode preference. This block is what makes dark mode real; `.dark`
+ * (below) stays as the higher-specificity-by-source-order hook a future
+ * manual toggle would use, and is otherwise harmless.
+ */
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --ink: #ece3ce;
+    --ink-soft: #b9ae92;
+    --ink-faint: #968e73;
+    --paper: #15130e;
+    --paper-raised: #1e1b14;
+    --line: #3a3527;
+    --line-strong: #4d4630;
+    --stamp: #e2704b;
+    --stamp-soft: #4a2a1e;
+    --gold: #d2a94f;
+    --gold-soft: #4a3b1c;
+    --teal: #6fa79f;
+    --teal-soft: #233a37;
+    --noise: #8b8370;
+    --signal: #e2704b;
+    --alpha: #d2a94f;
+    --mono-surface: #211d14;
+
+    --background: var(--paper);
+    --foreground: var(--ink);
+    --card: var(--paper-raised);
+    --card-foreground: var(--ink);
+    --popover: var(--paper-raised);
+    --popover-foreground: var(--ink);
+    --primary: var(--ink);
+    --primary-foreground: var(--paper);
+    --secondary: var(--paper-raised);
+    --secondary-foreground: var(--ink);
+    --muted: var(--mono-surface);
+    --muted-foreground: var(--ink-soft);
+    --accent: var(--stamp-soft);
+    --accent-foreground: var(--ink);
+    --destructive: oklch(0.704 0.191 22.216);
+    --border: var(--line);
+    --input: var(--line);
+    --ring: var(--stamp);
+    --chart-1: var(--stamp);
+    --chart-2: var(--gold);
+    --chart-3: var(--teal);
+    --chart-4: var(--ink-soft);
+    --chart-5: var(--ink-faint);
+    --sidebar: var(--paper-raised);
+    --sidebar-foreground: var(--ink);
+    --sidebar-primary: var(--ink);
+    --sidebar-primary-foreground: var(--paper);
+    --sidebar-accent: var(--stamp-soft);
+    --sidebar-accent-foreground: var(--ink);
+    --sidebar-border: var(--line);
+    --sidebar-ring: var(--stamp);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+.dark {
+  /* brand palette — dark (ink) */
+  --ink: #ece3ce;
+  --ink-soft: #b9ae92;
+  --ink-faint: #968e73;
+  --paper: #15130e;
+  --paper-raised: #1e1b14;
+  --line: #3a3527;
+  --line-strong: #4d4630;
+  --stamp: #e2704b;
+  --stamp-soft: #4a2a1e;
+  --gold: #d2a94f;
+  --gold-soft: #4a3b1c;
+  --teal: #6fa79f;
+  --teal-soft: #233a37;
+  --noise: #8b8370;
+  --signal: #e2704b;
+  --alpha: #d2a94f;
+  --mono-surface: #211d14;
+
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --card: var(--paper-raised);
+  --card-foreground: var(--ink);
+  --popover: var(--paper-raised);
+  --popover-foreground: var(--ink);
+  --primary: var(--ink);
+  --primary-foreground: var(--paper);
+  --secondary: var(--paper-raised);
+  --secondary-foreground: var(--ink);
+  --muted: var(--mono-surface);
+  --muted-foreground: var(--ink-soft);
+  --accent: var(--stamp-soft);
+  --accent-foreground: var(--ink);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: var(--line);
+  --input: var(--line);
+  --ring: var(--stamp);
+  --chart-1: var(--stamp);
+  --chart-2: var(--gold);
+  --chart-3: var(--teal);
+  --chart-4: var(--ink-soft);
+  --chart-5: var(--ink-faint);
+  --sidebar: var(--paper-raised);
+  --sidebar-foreground: var(--ink);
+  --sidebar-primary: var(--ink);
+  --sidebar-primary-foreground: var(--paper);
+  --sidebar-accent: var(--stamp-soft);
+  --sidebar-accent-foreground: var(--ink);
+  --sidebar-border: var(--line);
+  --sidebar-ring: var(--stamp);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
 }
