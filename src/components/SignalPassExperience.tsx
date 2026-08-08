@@ -5,6 +5,7 @@ import { GenerationStage } from "@/components/pass/GenerationStage";
 import { IdentityForm } from "@/components/pass/IdentityForm";
 import { UploadStage } from "@/components/upload/UploadStage";
 import { useImageUpload } from "@/hooks/use-image-upload";
+import type { ChainStampId } from "@/lib/constants";
 
 /**
  * The whole product, end to end. Stage is derived from upload state +
@@ -15,7 +16,11 @@ import { useImageUpload } from "@/hooks/use-image-upload";
  */
 export function SignalPassExperience() {
   const { status, image, error, fileName, upload, reset } = useImageUpload();
-  const [pendingValues, setPendingValues] = useState<{ name: string; stack: string } | null>(null);
+  const [pendingValues, setPendingValues] = useState<{
+    name: string;
+    stack: string;
+    chainStamp: ChainStampId;
+  } | null>(null);
 
   const stage = !image ? "upload" : !pendingValues ? "details" : "generating";
 

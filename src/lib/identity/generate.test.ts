@@ -4,15 +4,18 @@ import { computeChecksum } from "./checksum";
 import { generateIdentity } from "./generate";
 
 const samplePhoto = "data:image/jpeg;base64,AAAABBBBCCCC";
+const base = { chainStamp: "ethereum" as const };
 
 describe("generateIdentity", () => {
   it("is deterministic — same inputs always produce the same identity", () => {
     const a = generateIdentity({
+      ...base,
       name: "Kay",
       stack: "React, Solidity",
       photoDataUrl: samplePhoto,
     });
     const b = generateIdentity({
+      ...base,
       name: "Kay",
       stack: "React, Solidity",
       photoDataUrl: samplePhoto,
@@ -21,41 +24,58 @@ describe("generateIdentity", () => {
   });
 
   it("changes identity when any input changes", () => {
-    const base = generateIdentity({ name: "Kay", stack: "React", photoDataUrl: samplePhoto });
-    const differentName = generateIdentity({
-      name: "Jay",
-      stack: "React",
-      photoDataUrl: samplePhoto,
-    });
-    const differentStack = generateIdentity({
-      name: "Kay",
-      stack: "Solidity",
-      photoDataUrl: samplePhoto,
-    });
-    const differentPhoto = generateIdentity({
-      name: "Kay",
-      stack: "React",
-      photoDataUrl: samplePhoto + "X",
-    });
-    expect(base.seed).not.toBe(differentName.seed);
-    expect(base.seed).not.toBe(differentStack.seed);
-    expect(base.seed).not.toBe(differentPhoto.seed);
+    const baseArgs = { ...base, name: "Kay", stack: "React", photoDataUrl: samplePhoto };
+    const differentName = generateIdentity({ ...baseArgs, name: "Jay" });
+    const differentStack = generateIdentity({ ...baseArgs, stack: "Solidity" });
+    const differentPhoto = generateIdentity({ ...baseArgs, photoDataUrl: samplePhoto + "X" });
+    const base_ = generateIdentity(baseArgs);
+    expect(base_.seed).not.toBe(differentName.seed);
+    expect(base_.seed).not.toBe(differentStack.seed);
+    expect(base_.seed).not.toBe(differentPhoto.seed);
+  });
+
+  it("carries the chosen chain stamp through untouched, without affecting the seed", () => {
+    const baseArgs = { name: "Kay", stack: "React", photoDataUrl: samplePhoto };
+    const ethereum = generateIdentity({ ...baseArgs, chainStamp: "ethereum" });
+    const solana = generateIdentity({ ...baseArgs, chainStamp: "solana" });
+    expect(ethereum.chainStamp).toBe("ethereum");
+    expect(solana.chainStamp).toBe("solana");
+    // Picking a different stamp flavor must not reshuffle the rest of the
+    // identity — it's a personalization choice, not a seed input.
+    expect(ethereum.seed).toBe(solana.seed);
+    expect(ethereum.tier).toBe(solana.tier);
+    expect(ethereum.serial).toBe(solana.serial);
   });
 
   it("produces a serial matching HHG<year>-#### and a recomputable checksum", () => {
-    const identity = generateIdentity({ name: "Kay", stack: "Rust", photoDataUrl: samplePhoto });
+    const identity = generateIdentity({
+      ...base,
+      name: "Kay",
+      stack: "Rust",
+      photoDataUrl: samplePhoto,
+    });
     expect(identity.serial).toMatch(/^HHG26-\d{4}$/);
     const digits = identity.serial.split("-")[1];
     expect(identity.checksum).toBe(computeChecksum(digits));
   });
 
   it("always assigns a valid tier", () => {
-    const identity = generateIdentity({ name: "Kay", stack: "", photoDataUrl: samplePhoto });
+    const identity = generateIdentity({
+      ...base,
+      name: "Kay",
+      stack: "",
+      photoDataUrl: samplePhoto,
+    });
     expect(TIERS.map((t) => t.id)).toContain(identity.tier);
   });
 
   it("keeps signal rank, seal variation, and accent variation in range", () => {
-    const identity = generateIdentity({ name: "Kay", stack: "Go", photoDataUrl: samplePhoto });
+    const identity = generateIdentity({
+      ...base,
+      name: "Kay",
+      stack: "Go",
+      photoDataUrl: samplePhoto,
+    });
     expect(identity.signalRank).toBeGreaterThanOrEqual(0);
     expect(identity.signalRank).toBeLessThan(1000);
     expect(identity.sealVariation).toBeGreaterThanOrEqual(0);
@@ -68,6 +88,7 @@ describe("generateIdentity", () => {
 
   it("falls back to the generic archetype bank for an unrecognized stack", () => {
     const identity = generateIdentity({
+      ...base,
       name: "Kay",
       stack: "underwater basket weaving",
       photoDataUrl: samplePhoto,
@@ -77,6 +98,7 @@ describe("generateIdentity", () => {
 
   it("matches a recognizable stack to its flavor category", () => {
     const identity = generateIdentity({
+      ...base,
       name: "Kay",
       stack: "Solidity + Foundry",
       photoDataUrl: samplePhoto,
@@ -89,6 +111,7 @@ describe("generateIdentity", () => {
     const N = 5000;
     for (let i = 0; i < N; i++) {
       const identity = generateIdentity({
+        ...base,
         name: `Builder ${i}`,
         stack: "React",
         photoDataUrl: samplePhoto,

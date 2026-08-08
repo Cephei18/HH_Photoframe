@@ -36,12 +36,15 @@ export const PASS_LAYOUT = {
   tierWord: { insetTop: 108, insetX: 44, size: 168 },
 
   // Co-centered with `stamp`, and deliberately larger than its diameter
-  // (296px) so a ring of the ghost photo peeks out from behind it once the
+  // (344px) so a ring of the ghost photo peeks out from behind it once the
   // stamp is drawn on top — the "photo can't have been swapped" effect,
   // not a coincidence of two unrelated placements.
-  ghost: { size: 340, cx: 890, cy: 1300, opacity: 0.2 },
+  ghost: { size: 390, cx: 890, cy: 1300, opacity: 0.2 },
   seal: { cx: 200, cy: 1166, radius: 128 },
-  stamp: { cx: 890, cy: 1300, radius: 148, rotationRangeDeg: [-16, -6] as const },
+  // Radius sized for four content lines (tier, chosen chain glyph + label,
+  // coordinates, terminal) — see drawTierStamp's fixed offsets, which
+  // assume this exact radius.
+  stamp: { cx: 890, cy: 1300, radius: 172, rotationRangeDeg: [-16, -6] as const },
 
   edgeMicroprint: { inset: 9, fontSize: 8 },
 

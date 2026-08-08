@@ -1,4 +1,4 @@
-import type { TierId } from "@/lib/constants";
+import type { ChainStampId, TierId } from "@/lib/constants";
 import type { ArchetypeCategory } from "./banks";
 
 export type GenerateIdentityInput = {
@@ -7,6 +7,10 @@ export type GenerateIdentityInput = {
   /** The processed photo's data URL — folded into the seed so identity is
    * tied to the specific upload, not just the name/stack pair. */
   photoDataUrl: string;
+  /** User-chosen, not hash-derived — see CHAIN_STAMPS. Still makes the
+   * overall identity deterministic: same inputs (including this one)
+   * always produce the same identity. */
+  chainStamp: ChainStampId;
 };
 
 export type BuilderIdentity = {
@@ -15,6 +19,7 @@ export type BuilderIdentity = {
 
   name: string;
   stack: string;
+  chainStamp: ChainStampId;
 
   archetype: string;
   archetypeCategory: ArchetypeCategory;

@@ -1,11 +1,13 @@
 import { EVENT } from "@/lib/constants";
 import { computeAutoCrop } from "@/lib/image/autocrop";
+import { drawChainGlyph } from "./chain-glyph";
 import { getDuotonePhoto } from "./duotone-cache";
 import { CANVAS_FONTS } from "./font-refs";
 import { drawGuilloche } from "./guilloche";
 import { PASS_LAYOUT } from "./layout";
 import { buildMrzLines } from "./mrz";
 import { hexToRgb, PALETTE, TIER_COLOR } from "./palette";
+import { drawScallopWave, drawSunburst } from "./retro-motifs";
 import { createGrainPattern, createHalftonePattern } from "./texture";
 import { fillTextTracked, repeatToWidth } from "./text";
 import type { RenderInput } from "./types";
@@ -37,6 +39,7 @@ export async function drawPass(ctx: CanvasRenderingContext2D, input: RenderInput
   drawHalftoneOverlay(ctx, identity.seed);
   drawLatentWatermark(ctx);
   drawGhost(ctx, duotoneSource, crop);
+  drawSealBacking(ctx);
   drawGuilloche(
     ctx,
     L.seal.cx,
@@ -50,12 +53,14 @@ export async function drawPass(ctx: CanvasRenderingContext2D, input: RenderInput
   drawTierWord(ctx, identity.tier, tierColor);
   drawRegistrationTicks(ctx);
   drawEdgeMicroprint(ctx);
+  drawWaveDivider(ctx);
 
   drawStrip(ctx, identity);
   drawMrz(ctx, identity);
   drawPerforation(ctx);
   drawMicroBand(ctx);
 
+  drawStampSunburst(ctx);
   drawTierStamp(ctx, identity, tierColor);
   drawGrain(ctx, identity.seed);
 }
@@ -96,7 +101,7 @@ function drawLatentWatermark(ctx: CanvasRenderingContext2D): void {
   ctx.clip();
 
   ctx.font = `400 15px ${CANVAS_FONTS.mono}`;
-  ctx.fillStyle = "rgba(245,240,226,0.09)";
+  ctx.fillStyle = "rgba(250,244,228,0.09)";
   ctx.textAlign = "left";
   ctx.translate(L.photo.width / 2, L.photo.height / 2);
   ctx.rotate((-32 * Math.PI) / 180);
@@ -116,6 +121,22 @@ function drawLatentWatermark(ctx: CanvasRenderingContext2D): void {
       ctx.fillText(label, col * lineWidth, row * rowSpacing);
     }
   }
+  ctx.restore();
+}
+
+/** A translucent cream disc behind the guilloché seal — without it, fine
+ * tier-colored engraving lines drawn directly over a similarly-toned
+ * duotone photo (verified by actually rendering this: the "noise" tier's
+ * sage-green lines all but vanished into the photo's own green shadows)
+ * are nearly invisible regardless of what tier color ends up drawn there. */
+function drawSealBacking(ctx: CanvasRenderingContext2D): void {
+  const { cx, cy, radius } = L.seal;
+  const [r, g, b] = hexToRgb(PALETTE.paperRaised);
+  ctx.save();
+  ctx.fillStyle = `rgba(${r},${g},${b},0.6)`;
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+  ctx.fill();
   ctx.restore();
 }
 
@@ -156,24 +177,41 @@ function drawMasthead(ctx: CanvasRenderingContext2D): void {
   ctx.textBaseline = "top";
   fillTextTracked(ctx, `${EVENT.name.toUpperCase()} · ${EVENT.year}`, insetX, insetTop, 2);
 
+  // Devanagari mark — yellow fill over a pink outline stroke, the same
+  // sticker treatment as HH Goa's own गोवा mark (reference/goa_hindi.svg).
   ctx.font = `italic 400 ${markSize}px ${CANVAS_FONTS.body}`;
   ctx.textAlign = "right";
-  ctx.fillText(EVENT.devanagariMark, L.width - insetX, insetTop - 4);
+  ctx.textBaseline = "alphabetic";
+  const markX = L.width - insetX;
+  const markY = insetTop + markSize * 0.82;
+  ctx.lineWidth = markSize * 0.1;
+  ctx.lineJoin = "round";
+  ctx.strokeStyle = PALETTE.stamp;
+  ctx.strokeText(EVENT.devanagariMark, markX, markY);
+  ctx.fillStyle = PALETTE.gold;
+  ctx.fillText(EVENT.devanagariMark, markX, markY);
   ctx.restore();
 }
 
 function drawTierWord(ctx: CanvasRenderingContext2D, tier: string, tierColor: string): void {
   const { insetTop, insetX, size } = L.tierWord;
+  const label = tier.toUpperCase();
   ctx.save();
-  ctx.fillStyle = PALETTE.paperRaised;
   ctx.font = `700 ${size}px ${CANVAS_FONTS.display}`;
   ctx.textAlign = "left";
   ctx.textBaseline = "top";
-  ctx.fillText(tier.toUpperCase(), insetX, insetTop);
+
+  // A dark offset shadow behind the yellow-cream word — the same poster
+  // treatment as the real "HACKER HOUSE" wordmark (reference/Hacker house.png).
+  ctx.fillStyle = PALETTE.inkDeep;
+  ctx.fillText(label, insetX + size * 0.035, insetTop + size * 0.045);
+
+  ctx.fillStyle = PALETTE.paperRaised;
+  ctx.fillText(label, insetX, insetTop);
 
   // A thin accent rule under the word, in the tier color — the one place
   // the tier color appears at full strength outside the stamp/seal.
-  const width = ctx.measureText(tier.toUpperCase()).width;
+  const width = ctx.measureText(label).width;
   ctx.fillStyle = tierColor;
   ctx.fillRect(insetX, insetTop + size * 0.92, width, 6);
   ctx.restore();
@@ -188,7 +226,7 @@ function drawRegistrationTicks(ctx: CanvasRenderingContext2D): void {
     [L.photo.width - inset, L.photo.height - inset, -1, -1],
   ];
   ctx.save();
-  ctx.strokeStyle = "rgba(245,240,226,0.55)";
+  ctx.strokeStyle = "rgba(250,244,228,0.55)";
   ctx.lineWidth = 1.4;
   for (const [x, y, dx, dy] of corners) {
     ctx.beginPath();
@@ -206,7 +244,7 @@ function drawEdgeMicroprint(ctx: CanvasRenderingContext2D): void {
   const label = `${EVENT.motto.toUpperCase()} `;
   ctx.save();
   ctx.font = `500 ${fontSize}px ${CANVAS_FONTS.mono}`;
-  ctx.fillStyle = "rgba(245,240,226,0.4)";
+  ctx.fillStyle = "rgba(250,244,228,0.4)";
   ctx.textBaseline = "middle";
 
   ctx.translate(inset, L.photo.height / 2);
@@ -216,12 +254,18 @@ function drawEdgeMicroprint(ctx: CanvasRenderingContext2D): void {
 
   ctx.save();
   ctx.font = `500 ${fontSize}px ${CANVAS_FONTS.mono}`;
-  ctx.fillStyle = "rgba(245,240,226,0.4)";
+  ctx.fillStyle = "rgba(250,244,228,0.4)";
   ctx.textBaseline = "middle";
   ctx.translate(L.photo.width - inset, L.photo.height / 2);
   ctx.rotate(Math.PI / 2);
   ctx.fillText(repeatToWidth(ctx, label, L.photo.height * 0.9), -L.photo.height * 0.45, 0);
   ctx.restore();
+}
+
+/** A cream scalloped wave lapping at the very bottom edge of the photo —
+ * the site's own wave line art, standing in for a plain hairline. */
+function drawWaveDivider(ctx: CanvasRenderingContext2D): void {
+  drawScallopWave(ctx, 0, L.photo.height - 13, L.width, 13, PALETTE.paperRaised);
 }
 
 function drawStrip(ctx: CanvasRenderingContext2D, identity: RenderInput["identity"]): void {
@@ -254,7 +298,7 @@ function drawMrz(ctx: CanvasRenderingContext2D, identity: RenderInput["identity"
 
   const [line1, line2] = buildMrzLines(identity);
   ctx.font = `400 22px ${CANVAS_FONTS.mono}`;
-  ctx.fillStyle = "rgba(245,240,226,0.65)";
+  ctx.fillStyle = "rgba(250,244,228,0.65)";
   ctx.textAlign = "left";
   ctx.textBaseline = "middle";
   fillTextTracked(ctx, line1, L.margin, y + height * 0.36, 3);
@@ -301,6 +345,11 @@ function drawMicroBand(ctx: CanvasRenderingContext2D): void {
   ctx.fillText(repeatToWidth(ctx, label, width), L.margin * -0.3, y + height / 2);
 }
 
+function drawStampSunburst(ctx: CanvasRenderingContext2D): void {
+  const { cx, cy, radius } = L.stamp;
+  drawSunburst(ctx, cx, cy, radius * 0.78, radius * 1.55, 20, PALETTE.gold);
+}
+
 function drawTierStamp(
   ctx: CanvasRenderingContext2D,
   identity: RenderInput["identity"],
@@ -313,17 +362,19 @@ function drawTierStamp(
   ctx.translate(cx, cy);
   ctx.rotate((identity.stampRotationDeg * Math.PI) / 180);
 
-  // Opaque-ish backing disc FIRST — the holo strip and text draw on top of
-  // it, not the other way round, so the foil actually shows instead of
-  // being muted underneath a translucent fill painted after it.
-  ctx.fillStyle = `rgba(${r},${g},${b},0.78)`;
+  // Fully opaque backing disc — verified by actually rendering this: at
+  // the previous 0.85 alpha, the strip band's own text underneath (which
+  // this stamp's larger radius now overlaps) bled through and garbled
+  // together with the stamp's own text. A "translucent ink" look isn't
+  // worth trading away legibility for.
+  ctx.fillStyle = `rgb(${r},${g},${b})`;
   ctx.beginPath();
   ctx.arc(0, 0, radius, 0, Math.PI * 2);
   ctx.fill();
 
-  // Holographic foil strip, clipped to the disc, in the gap between the
-  // tier word and the coordinates/terminal lines below it — the one
-  // moment of shimmer, and it never collides with text.
+  // Holographic foil strip, clipped to the disc, near the bottom edge —
+  // below every text line, the one gap verified (by actually rendering
+  // this) to be clear of everything else in the stamp.
   ctx.save();
   ctx.beginPath();
   ctx.arc(0, 0, radius, 0, Math.PI * 2);
@@ -334,7 +385,7 @@ function drawTierStamp(
   holoGradient.addColorStop(1, PALETTE.stamp);
   ctx.globalAlpha = 0.4;
   ctx.fillStyle = holoGradient;
-  ctx.fillRect(-radius, radius * 0.13, radius * 2, radius * 0.1);
+  ctx.fillRect(-radius, radius * 0.64, radius * 2, radius * 0.07);
   ctx.restore();
 
   ctx.strokeStyle = tierColor;
@@ -343,16 +394,23 @@ function drawTierStamp(
   ctx.arc(0, 0, radius - 4, 0, Math.PI * 2);
   ctx.stroke();
 
+  // Three content lines, generously spaced (verified by actually
+  // rendering this — the first attempt crammed tier/glyph/label/coords
+  // into overlapping text; this is deliberately sparser).
   ctx.fillStyle = tierColor;
   ctx.textAlign = "center";
-  ctx.font = `700 ${Math.round(radius * 0.34)}px ${CANVAS_FONTS.display}`;
+  ctx.font = `700 ${Math.round(radius * 0.26)}px ${CANVAS_FONTS.display}`;
   ctx.textBaseline = "middle";
-  ctx.fillText(identity.tier.toUpperCase(), 0, -radius * 0.08);
+  ctx.fillText(identity.tier.toUpperCase(), 0, -radius * 0.44);
 
-  ctx.font = `500 ${Math.round(radius * 0.09)}px ${CANVAS_FONTS.mono}`;
+  // Chosen visa-stamp flavor — the one field the person picked themselves.
+  drawChainGlyph(ctx, identity.chainStamp, 0, 0, radius * 0.22, tierColor);
+  ctx.font = `500 ${Math.round(radius * 0.095)}px ${CANVAS_FONTS.mono}`;
+  ctx.fillText(identity.chainStamp.toUpperCase(), 0, radius * 0.34);
+
+  ctx.font = `500 ${Math.round(radius * 0.07)}px ${CANVAS_FONTS.mono}`;
   ctx.fillStyle = PALETTE.inkSoft;
-  ctx.fillText(EVENT.coordinatesLabel, 0, radius * 0.28);
-  ctx.fillText(`TERMINAL ${identity.terminal}`, 0, radius * 0.44);
+  ctx.fillText(`15.30°N 74.12°E · ${identity.terminal}`, 0, radius * 0.49);
 
   ctx.restore();
 }

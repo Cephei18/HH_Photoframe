@@ -71,29 +71,39 @@
   --color-mono-surface: var(--mono-surface);
 }
 
+/*
+ * Brand palette — sampled directly from HH Goa's actual logo files and
+ * site screenshots (see reference/), not invented. The real identity is a
+ * loud retro-travel-poster system — deep jungle green, sun yellow, hot
+ * flamingo pink, warm cream — replacing an earlier muted beige/brick
+ * "customs office" palette that didn't read as Goa at all.
+ *
+ * --gold and the raw flamingo hue are true to source but both fail WCAG
+ * text contrast on cream (measured 1.2:1 and 3.3:1 respectively) — real
+ * passport/tourism-poster yellow is a *fill* color with dark text on top,
+ * never small text on light paper. --stamp below is therefore a darkened,
+ * text-safe flamingo for labels/links/focus rings; --gold stays the true
+ * vivid hue and is only ever used as a background fill (button, badge)
+ * with --ink text on top, which measures 5.8:1.
+ */
 :root {
-  /* brand palette — light (paper) */
-  --ink: #1c1a15;
-  --ink-soft: #5b5544;
-  /* Darkened from the original #8b8371 — measured at 3.0–3.3:1 against
-     paper/paper-raised (Lighthouse a11y audit), below WCAG AA's 4.5:1 for
-     normal text. This still reads as the faintest tier in the hierarchy,
-     just no longer fails contrast to do it. */
-  --ink-faint: #6a634f;
-  --paper: #ece7d9;
-  --paper-raised: #f5f0e2;
-  --line: #c9c0a8;
-  --line-strong: #a89d80;
-  --stamp: #a23b26;
-  --stamp-soft: #e4cfc0;
-  --gold: #8c6a2f;
-  --gold-soft: #e4d6ae;
-  --teal: #2a5753;
-  --teal-soft: #cfddd9;
-  --noise: #7c7568;
-  --signal: #a23b26;
-  --alpha: #8c6a2f;
-  --mono-surface: #e1d9c4;
+  --ink: #0a5c38;
+  --ink-soft: #2e7350;
+  --ink-faint: #3f6e56;
+  --paper: #f5eedc;
+  --paper-raised: #faf4e4;
+  --line: #d9cfa9;
+  --line-strong: #c7b98a;
+  --stamp: #c2005f;
+  --stamp-soft: #ffd6ec;
+  --gold: #fcd900;
+  --gold-soft: #fff0a3;
+  --teal: #1f6e52;
+  --teal-soft: #cfe7db;
+  --noise: #6e8b7a;
+  --signal: #c2005f;
+  --alpha: #b8860b;
+  --mono-surface: #ece1be;
 
   /* shadcn semantic tokens, mapped onto the brand palette */
   --background: var(--paper);
@@ -102,8 +112,10 @@
   --card-foreground: var(--ink);
   --popover: var(--paper-raised);
   --popover-foreground: var(--ink);
-  --primary: var(--ink);
-  --primary-foreground: var(--paper);
+  /* Primary buttons are bold yellow-on-green, matching the real site's own
+     "APPLY" button — not another neutral ink-filled button. */
+  --primary: var(--gold);
+  --primary-foreground: var(--ink);
   --secondary: var(--paper-raised);
   --secondary-foreground: var(--ink);
   --muted: var(--mono-surface);
@@ -124,8 +136,8 @@
   --radius: 0px;
   --sidebar: var(--paper-raised);
   --sidebar-foreground: var(--ink);
-  --sidebar-primary: var(--ink);
-  --sidebar-primary-foreground: var(--paper);
+  --sidebar-primary: var(--gold);
+  --sidebar-primary-foreground: var(--ink);
   --sidebar-accent: var(--stamp-soft);
   --sidebar-accent-foreground: var(--ink);
   --sidebar-border: var(--line);
@@ -142,23 +154,23 @@
  */
 @media (prefers-color-scheme: dark) {
   :root {
-    --ink: #ece3ce;
-    --ink-soft: #b9ae92;
-    --ink-faint: #968e73;
-    --paper: #15130e;
-    --paper-raised: #1e1b14;
-    --line: #3a3527;
-    --line-strong: #4d4630;
-    --stamp: #e2704b;
-    --stamp-soft: #4a2a1e;
-    --gold: #d2a94f;
+    --ink: #f3ecd8;
+    --ink-soft: #b9c9ae;
+    --ink-faint: #8fa68f;
+    --paper: #06251a;
+    --paper-raised: #0b3423;
+    --line: #1c4632;
+    --line-strong: #2a5b41;
+    --stamp: #ff3d9a;
+    --stamp-soft: #3a1230;
+    --gold: #fcd900;
     --gold-soft: #4a3b1c;
-    --teal: #6fa79f;
-    --teal-soft: #233a37;
-    --noise: #8b8370;
-    --signal: #e2704b;
-    --alpha: #d2a94f;
-    --mono-surface: #211d14;
+    --teal: #4fae93;
+    --teal-soft: #123328;
+    --noise: #8fa68f;
+    --signal: #ff3d9a;
+    --alpha: #fcd900;
+    --mono-surface: #0e2e20;
 
     --background: var(--paper);
     --foreground: var(--ink);
@@ -166,8 +178,8 @@
     --card-foreground: var(--ink);
     --popover: var(--paper-raised);
     --popover-foreground: var(--ink);
-    --primary: var(--ink);
-    --primary-foreground: var(--paper);
+    --primary: var(--gold);
+    --primary-foreground: #06251a;
     --secondary: var(--paper-raised);
     --secondary-foreground: var(--ink);
     --muted: var(--mono-surface);
@@ -185,8 +197,8 @@
     --chart-5: var(--ink-faint);
     --sidebar: var(--paper-raised);
     --sidebar-foreground: var(--ink);
-    --sidebar-primary: var(--ink);
-    --sidebar-primary-foreground: var(--paper);
+    --sidebar-primary: var(--gold);
+    --sidebar-primary-foreground: #06251a;
     --sidebar-accent: var(--stamp-soft);
     --sidebar-accent-foreground: var(--ink);
     --sidebar-border: var(--line);
@@ -195,24 +207,23 @@
 }
 
 .dark {
-  /* brand palette — dark (ink) */
-  --ink: #ece3ce;
-  --ink-soft: #b9ae92;
-  --ink-faint: #968e73;
-  --paper: #15130e;
-  --paper-raised: #1e1b14;
-  --line: #3a3527;
-  --line-strong: #4d4630;
-  --stamp: #e2704b;
-  --stamp-soft: #4a2a1e;
-  --gold: #d2a94f;
+  --ink: #f3ecd8;
+  --ink-soft: #b9c9ae;
+  --ink-faint: #8fa68f;
+  --paper: #06251a;
+  --paper-raised: #0b3423;
+  --line: #1c4632;
+  --line-strong: #2a5b41;
+  --stamp: #ff3d9a;
+  --stamp-soft: #3a1230;
+  --gold: #fcd900;
   --gold-soft: #4a3b1c;
-  --teal: #6fa79f;
-  --teal-soft: #233a37;
-  --noise: #8b8370;
-  --signal: #e2704b;
-  --alpha: #d2a94f;
-  --mono-surface: #211d14;
+  --teal: #4fae93;
+  --teal-soft: #123328;
+  --noise: #8fa68f;
+  --signal: #ff3d9a;
+  --alpha: #fcd900;
+  --mono-surface: #0e2e20;
 
   --background: var(--paper);
   --foreground: var(--ink);
@@ -220,8 +231,8 @@
   --card-foreground: var(--ink);
   --popover: var(--paper-raised);
   --popover-foreground: var(--ink);
-  --primary: var(--ink);
-  --primary-foreground: var(--paper);
+  --primary: var(--gold);
+  --primary-foreground: #06251a;
   --secondary: var(--paper-raised);
   --secondary-foreground: var(--ink);
   --muted: var(--mono-surface);
@@ -239,8 +250,8 @@
   --chart-5: var(--ink-faint);
   --sidebar: var(--paper-raised);
   --sidebar-foreground: var(--ink);
-  --sidebar-primary: var(--ink);
-  --sidebar-primary-foreground: var(--paper);
+  --sidebar-primary: var(--gold);
+  --sidebar-primary-foreground: #06251a;
   --sidebar-accent: var(--stamp-soft);
   --sidebar-accent-foreground: var(--ink);
   --sidebar-border: var(--line);

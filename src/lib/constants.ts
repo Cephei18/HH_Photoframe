@@ -40,6 +40,22 @@ export const ACCESS_ZONES = [
 
 export const TERMINALS = ["Σ", "Δ", "Ω", "Φ"] as const;
 
+/**
+ * User-chosen visa-stamp flavor — the one identity field that's picked,
+ * not hash-derived. Icons are abstracted/geometric nods to each chain
+ * (a diamond, stacked bars, a struck coin, a spark) rather than literal
+ * trademarked logos — the same restraint already applied to the
+ * guilloché's Ethereum-facet motif.
+ */
+export const CHAIN_STAMPS = [
+  { id: "ethereum", label: "Ethereum" },
+  { id: "solana", label: "Solana" },
+  { id: "bitcoin", label: "Bitcoin" },
+  { id: "ai", label: "AI" },
+] as const;
+
+export type ChainStampId = (typeof CHAIN_STAMPS)[number]["id"];
+
 export const SHARE_CAPTIONS: Record<TierId, string> = {
   noise: "Certified NOISE. No signal detected (yet). {hashtag}",
   signal: "SIGNAL confirmed — cleared for Goa. {hashtag}",

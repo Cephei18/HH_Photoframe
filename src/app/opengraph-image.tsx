@@ -11,6 +11,7 @@ export const contentType = "image/png";
 // the one place in the product that actually calls for Satori: a single,
 // fixed, non-personalized image, exactly what it's good at. The
 // per-user pass (lib/render) is Canvas — see that module's notes on why.
+//
 // Satori (the renderer behind ImageResponse) only accepts ttf/otf/woff —
 // NOT woff2, unlike every other font reference in this codebase. These two
 // ttf files exist solely for this route; the product's own typography
@@ -31,8 +32,8 @@ export default async function Image() {
         flexDirection: "column",
         justifyContent: "space-between",
         padding: "72px",
-        backgroundColor: "#ece7d9",
-        color: "#1c1a15",
+        backgroundColor: "#F5EEDC",
+        color: "#0A5C38",
       }}
     >
       <div
@@ -42,7 +43,7 @@ export default async function Image() {
           fontFamily: "JetBrains Mono",
           fontSize: 22,
           letterSpacing: 2,
-          color: "#a23b26",
+          color: "#C2005F",
           textTransform: "uppercase",
         }}
       >
@@ -61,10 +62,11 @@ export default async function Image() {
           fontSize: 132,
           lineHeight: 0.95,
           textTransform: "uppercase",
+          color: "#0A5C38",
         }}
       >
         <span>The Signal</span>
-        <span style={{ color: "#a23b26" }}>Pass</span>
+        <span style={{ color: "#FF0080" }}>Pass</span>
       </div>
 
       <div
@@ -74,7 +76,7 @@ export default async function Image() {
           fontFamily: "JetBrains Mono",
           fontSize: 20,
           letterSpacing: 1,
-          color: "#5b5544",
+          color: "#2E7350",
         }}
       >
         <span>{EVENT.coordinatesLabel}</span>

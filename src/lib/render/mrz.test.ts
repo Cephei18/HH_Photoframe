@@ -3,10 +3,16 @@ import { generateIdentity } from "@/lib/identity/generate";
 import { buildMrzLines } from "./mrz";
 
 const samplePhoto = "data:image/jpeg;base64,AAAABBBBCCCC";
+const chainStamp = "ethereum" as const;
 
 describe("buildMrzLines", () => {
   it("produces two fixed-length, MRZ-alphabet-only lines", () => {
-    const identity = generateIdentity({ name: "Kay", stack: "React", photoDataUrl: samplePhoto });
+    const identity = generateIdentity({
+      name: "Kay",
+      stack: "React",
+      photoDataUrl: samplePhoto,
+      chainStamp,
+    });
     const [line1, line2] = buildMrzLines(identity);
     expect(line1).toHaveLength(36);
     expect(line2).toHaveLength(36);
@@ -19,6 +25,7 @@ describe("buildMrzLines", () => {
       name: "Kay Verma",
       stack: "React",
       photoDataUrl: samplePhoto,
+      chainStamp,
     });
     const [line1] = buildMrzLines(identity);
     expect(line1).toContain("KAY<VERMA");
@@ -26,7 +33,12 @@ describe("buildMrzLines", () => {
   });
 
   it("encodes the serial digits and checksum verbatim in line 2", () => {
-    const identity = generateIdentity({ name: "Kay", stack: "Go", photoDataUrl: samplePhoto });
+    const identity = generateIdentity({
+      name: "Kay",
+      stack: "Go",
+      photoDataUrl: samplePhoto,
+      chainStamp,
+    });
     const [, line2] = buildMrzLines(identity);
     const serialDigits = identity.serial.split("-")[1];
     expect(line2.startsWith(`${serialDigits}${identity.checksum}`)).toBe(true);
@@ -37,13 +49,19 @@ describe("buildMrzLines", () => {
       name: "Kay-Élise",
       stack: "C++",
       photoDataUrl: samplePhoto,
+      chainStamp,
     });
     const [line1] = buildMrzLines(identity);
     expect(line1).toMatch(/^[A-Z0-9<]{36}$/);
   });
 
   it("is deterministic for the same identity", () => {
-    const identity = generateIdentity({ name: "Kay", stack: "Rust", photoDataUrl: samplePhoto });
+    const identity = generateIdentity({
+      name: "Kay",
+      stack: "Rust",
+      photoDataUrl: samplePhoto,
+      chainStamp,
+    });
     expect(buildMrzLines(identity)).toEqual(buildMrzLines(identity));
   });
 });

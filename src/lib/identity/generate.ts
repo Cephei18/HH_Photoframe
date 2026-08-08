@@ -17,6 +17,10 @@ export function generateIdentity(input: GenerateIdentityInput): BuilderIdentity 
   const name = input.name.trim() || "Builder";
   const stack = input.stack.trim();
 
+  // chainStamp is deliberately NOT folded into the seed string below —
+  // it's a direct personalization choice, not something that should
+  // reshuffle someone's tier/archetype/serial if they change their mind
+  // about which stamp flavor they want.
   const seed = fnv1a(`${name}::${stack}::${input.photoDataUrl}`);
   const next = mulberry32(seed);
 
@@ -76,6 +80,7 @@ export function generateIdentity(input: GenerateIdentityInput): BuilderIdentity 
     seed,
     name,
     stack,
+    chainStamp: input.chainStamp,
     archetype,
     archetypeCategory,
     signalRank,

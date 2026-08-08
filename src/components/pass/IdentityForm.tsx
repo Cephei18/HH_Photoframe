@@ -4,26 +4,31 @@ import { useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { CHAIN_STAMPS, type ChainStampId } from "@/lib/constants";
+import { cn } from "@/lib/utils";
+import { ChainStampIcon } from "./ChainStampIcon";
 
 type IdentityFormProps = {
-  onSubmit: (values: { name: string; stack: string }) => void;
+  onSubmit: (values: { name: string; stack: string; chainStamp: ChainStampId }) => void;
   submitting?: boolean;
 };
 
 /**
- * The only form in the product — two fields, on the same screen as the
- * photo, per the approved mobile-first flow. Stack is optional: leaving it
- * blank still produces a complete (generic-flavored) archetype rather than
- * blocking on a field nobody's required to fill in.
+ * The only form in the product — two fields plus a stamp-flavor picker, on
+ * the same screen as the photo, per the approved mobile-first flow. Stack
+ * is optional; the chain stamp defaults to Ethereum so a one-tap Generate
+ * still works for anyone in a hurry — it's a fun customization, not a
+ * gate.
  */
 export function IdentityForm({ onSubmit, submitting }: IdentityFormProps) {
   const [name, setName] = useState("");
   const [stack, setStack] = useState("");
+  const [chainStamp, setChainStamp] = useState<ChainStampId>("ethereum");
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!name.trim()) return;
-    onSubmit({ name: name.trim(), stack: stack.trim() });
+    onSubmit({ name: name.trim(), stack: stack.trim(), chainStamp });
   }
 
   return (
@@ -62,6 +67,36 @@ export function IdentityForm({ onSubmit, submitting }: IdentityFormProps) {
           className="h-11 font-mono"
         />
       </div>
+
+      <fieldset className="flex flex-col gap-1.5">
+        <legend className="text-ink-soft font-mono text-xs tracking-wide uppercase">
+          Visa stamp
+        </legend>
+        <div className="grid grid-cols-4 gap-2" role="radiogroup" aria-label="Visa stamp flavor">
+          {CHAIN_STAMPS.map((stampOption) => {
+            const selected = chainStamp === stampOption.id;
+            return (
+              <button
+                key={stampOption.id}
+                type="button"
+                role="radio"
+                aria-checked={selected}
+                onClick={() => setChainStamp(stampOption.id)}
+                className={cn(
+                  "flex flex-col items-center gap-1 border py-2.5 font-mono text-[10px] uppercase transition-colors",
+                  selected
+                    ? "border-ink bg-gold text-ink"
+                    : "border-line-strong bg-paper-raised text-ink-soft hover:border-ink",
+                )}
+              >
+                <ChainStampIcon id={stampOption.id} size={18} />
+                {stampOption.label}
+              </button>
+            );
+          })}
+        </div>
+      </fieldset>
+
       <Button
         type="submit"
         size="lg"

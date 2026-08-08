@@ -5,6 +5,7 @@ import { generateIdentity } from "@/lib/identity/generate";
 import type { BuilderIdentity } from "@/lib/identity/types";
 import { STEP_META, type CeremonyStep } from "@/lib/ceremony/steps";
 import { waitFrames } from "@/lib/ceremony/wait-frames";
+import type { ChainStampId } from "@/lib/constants";
 import type { ProcessedImage } from "@/lib/image/types";
 import { AuthorizationOverlay } from "./AuthorizationOverlay";
 import { DownloadShareBar } from "./DownloadShareBar";
@@ -12,7 +13,7 @@ import { PassCanvas } from "./PassCanvas";
 
 type GenerationStageProps = {
   image: ProcessedImage;
-  values: { name: string; stack: string };
+  values: { name: string; stack: string; chainStamp: ChainStampId };
   onStartOver: () => void;
 };
 

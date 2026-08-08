@@ -1,32 +1,36 @@
 import type { TierId } from "@/lib/constants";
 
 /**
- * Fixed brand colors for the pass itself — deliberately NOT wired to the
- * app shell's light/dark CSS tokens. A printed credential doesn't change
- * color when the viewer's OS switches theme; the pass always renders as
- * warm paper + ink, the same object regardless of who's looking at it or
- * how. (The app shell around it still respects light/dark — see
- * globals.css.) Kept numerically identical to :root's light values there
- * so the product has one consistent brand palette, just not a live binding.
+ * Fixed brand colors for the pass itself — sampled directly from HH Goa's
+ * actual logo files and site screenshots (reference/), not invented. The
+ * real brand is a loud retro-travel-poster system: deep jungle green,
+ * golden sun yellow, hot flamingo pink, warm cream — not the muted
+ * beige/brick "customs office" palette this file used to hold.
+ *
+ * Deliberately NOT wired to the app shell's light/dark CSS tokens — like
+ * a real travel document, the pass always renders the same way regardless
+ * of the viewer's OS theme. See globals.css for the app shell's (separate)
+ * light/dark tokens, which now share this same brand palette.
  */
 export const PALETTE = {
-  ink: "#1c1a15",
-  inkSoft: "#5b5544",
-  inkFaint: "#8b8371",
-  paper: "#ece7d9",
-  paperRaised: "#f5f0e2",
-  line: "#c9c0a8",
-  lineStrong: "#a89d80",
-  stamp: "#a23b26",
-  stampSoft: "#e4cfc0",
-  gold: "#8c6a2f",
-  goldSoft: "#e4d6ae",
-  teal: "#2a5753",
-  tealSoft: "#cfddd9",
-  noise: "#7c7568",
-  signal: "#a23b26",
-  alpha: "#8c6a2f",
-  monoSurface: "#e1d9c4",
+  ink: "#0A5C38", // deep jungle green — doubles as the pass's "ink"
+  inkSoft: "#2E7350",
+  inkFaint: "#5C9478",
+  inkDeep: "#063D26", // darkest green, for shadow/depth only
+  paper: "#F5EEDC", // warm cream passport page
+  paperRaised: "#FAF4E4",
+  line: "#D9CFA9",
+  lineStrong: "#C7B98A",
+  stamp: "#FF0080", // flamingo pink — primary stamp ink
+  stampSoft: "#FFD6EC",
+  gold: "#FCD900", // sun yellow — secondary stamp ink
+  goldSoft: "#FFF0A3",
+  teal: "#1F6E52",
+  tealSoft: "#CFE7DB",
+  noise: "#6E8B7A",
+  signal: "#FF0080",
+  alpha: "#FCD900",
+  monoSurface: "#ECE1BE",
 } as const;
 
 export const TIER_COLOR: Record<TierId, string> = {

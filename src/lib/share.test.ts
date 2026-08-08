@@ -6,7 +6,12 @@ const samplePhoto = "data:image/jpeg;base64,AAAABBBBCCCC";
 
 describe("buildShareText", () => {
   it("substitutes the real hashtag into the tier's caption template", () => {
-    const identity = generateIdentity({ name: "Kay", stack: "React", photoDataUrl: samplePhoto });
+    const identity = generateIdentity({
+      name: "Kay",
+      stack: "React",
+      photoDataUrl: samplePhoto,
+      chainStamp: "ethereum",
+    });
     const text = buildShareText(identity);
     expect(text).toContain("#FrameInGoa");
     expect(text).not.toContain("{hashtag}");
@@ -22,7 +27,12 @@ describe("buildShareText", () => {
 
 describe("buildTweetIntentUrl", () => {
   it("builds a valid x.com intent URL containing the encoded caption", () => {
-    const identity = generateIdentity({ name: "Kay", stack: "React", photoDataUrl: samplePhoto });
+    const identity = generateIdentity({
+      name: "Kay",
+      stack: "React",
+      photoDataUrl: samplePhoto,
+      chainStamp: "ethereum",
+    });
     const url = buildTweetIntentUrl(identity);
     expect(url.startsWith("https://x.com/intent/tweet?")).toBe(true);
     // Parsed back with URLSearchParams, the same encoding convention the
