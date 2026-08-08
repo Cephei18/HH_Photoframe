@@ -1,5 +1,5 @@
 import { SignalPassExperience } from "@/components/SignalPassExperience";
-import { EVENT } from "@/lib/constants";
+import { EVENT, ORGANIZER } from "@/lib/constants";
 
 export default function Home() {
   return (
@@ -37,10 +37,31 @@ export default function Home() {
       </main>
 
       <footer className="border-line border-t px-5 py-5 sm:px-8">
-        <div className="text-ink-faint mx-auto flex max-w-xl flex-wrap justify-between gap-2 font-mono text-[11px]">
-          <span className="text-stamp uppercase">{EVENT.motto}</span>
-          <span>{EVENT.coordinatesLabel}</span>
-          <span>{EVENT.hashtag}</span>
+        <div className="mx-auto flex max-w-xl flex-col gap-3">
+          <div className="text-ink-faint flex flex-wrap justify-between gap-2 font-mono text-[11px]">
+            <span className="text-stamp uppercase">{EVENT.motto}</span>
+            <span>{EVENT.coordinatesLabel}</span>
+            <span>{EVENT.hashtag}</span>
+          </div>
+          <div className="text-ink-faint flex flex-wrap items-center gap-3 font-mono text-[11px] uppercase">
+            <span>Powered by {ORGANIZER.name}</span>
+            <a
+              href={ORGANIZER.x}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-stamp -my-2 py-2 underline-offset-4 hover:underline"
+            >
+              X
+            </a>
+            <a
+              href={ORGANIZER.telegram}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-stamp -my-2 py-2 underline-offset-4 hover:underline"
+            >
+              Telegram
+            </a>
+          </div>
         </div>
       </footer>
     </div>

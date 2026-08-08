@@ -16,6 +16,12 @@ export const EVENT = {
   devanagariMark: "गोवा",
 } as const;
 
+export const ORGANIZER = {
+  name: "2:47PM Studio",
+  x: "https://x.com/247pmstudio",
+  telegram: "https://t.me/twofourtysevenpm",
+} as const;
+
 export const TIERS = [
   { id: "noise", label: "Noise", weight: 55, colorVar: "--noise" },
   { id: "signal", label: "Signal", weight: 35, colorVar: "--signal" },
