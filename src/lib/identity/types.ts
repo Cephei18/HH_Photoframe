@@ -7,10 +7,11 @@ export type GenerateIdentityInput = {
   /** The processed photo's data URL — folded into the seed so identity is
    * tied to the specific upload, not just the name/stack pair. */
   photoDataUrl: string;
-  /** User-chosen, not hash-derived — see CHAIN_STAMPS. Still makes the
-   * overall identity deterministic: same inputs (including this one)
-   * always produce the same identity. */
-  chainStamp: ChainStampId;
+  /** User-chosen, not hash-derived — see CHAIN_STAMPS/MAX_CHAIN_STAMPS.
+   * Still makes the overall identity deterministic: same inputs (including
+   * this one) always produce the same identity. Non-empty, order preserved
+   * (order is what assigns each stamp to a visa-stamp slot on the pass). */
+  chainStamps: ChainStampId[];
 };
 
 export type BuilderIdentity = {
@@ -19,7 +20,7 @@ export type BuilderIdentity = {
 
   name: string;
   stack: string;
-  chainStamp: ChainStampId;
+  chainStamps: ChainStampId[];
 
   archetype: string;
   archetypeCategory: ArchetypeCategory;

@@ -41,20 +41,28 @@ export const ACCESS_ZONES = [
 export const TERMINALS = ["Σ", "Δ", "Ω", "Φ"] as const;
 
 /**
- * User-chosen visa-stamp flavor — the one identity field that's picked,
- * not hash-derived. Icons are abstracted/geometric nods to each chain
- * (a diamond, stacked bars, a struck coin, a spark) rather than literal
- * trademarked logos — the same restraint already applied to the
- * guilloché's Ethereum-facet motif.
+ * User-chosen visa-stamp flavors — picked, not hash-derived. Icons are
+ * abstracted/geometric nods to each chain or stack (a diamond, stacked
+ * bars, a struck coin, a spark, a gear, interlocking curves, a faceted
+ * hex, angle brackets) rather than literal trademarked logos — the same
+ * restraint already applied to the guilloché's Ethereum-facet motif.
  */
 export const CHAIN_STAMPS = [
   { id: "ethereum", label: "Ethereum" },
   { id: "solana", label: "Solana" },
   { id: "bitcoin", label: "Bitcoin" },
   { id: "ai", label: "AI" },
+  { id: "solidity", label: "Solidity" },
+  { id: "rust", label: "Rust" },
+  { id: "python", label: "Python" },
+  { id: "typescript", label: "TypeScript" },
 ] as const;
 
 export type ChainStampId = (typeof CHAIN_STAMPS)[number]["id"];
+
+/** A passport page only has so much room — the pass's visa-stamp cluster
+ * has exactly this many fixed slots (see PASS_LAYOUT.visaStampSlots). */
+export const MAX_CHAIN_STAMPS = 4;
 
 export const SHARE_CAPTIONS: Record<TierId, string> = {
   noise: "Certified NOISE. No signal detected (yet). {hashtag}",

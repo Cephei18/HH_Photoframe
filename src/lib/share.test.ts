@@ -10,7 +10,7 @@ describe("buildShareText", () => {
       name: "Kay",
       stack: "React",
       photoDataUrl: samplePhoto,
-      chainStamp: "ethereum",
+      chainStamps: ["ethereum"],
     });
     const text = buildShareText(identity);
     expect(text).toContain("#FrameInGoa");
@@ -31,7 +31,7 @@ describe("buildTweetIntentUrl", () => {
       name: "Kay",
       stack: "React",
       photoDataUrl: samplePhoto,
-      chainStamp: "ethereum",
+      chainStamps: ["ethereum"],
     });
     const url = buildTweetIntentUrl(identity);
     expect(url.startsWith("https://x.com/intent/tweet?")).toBe(true);

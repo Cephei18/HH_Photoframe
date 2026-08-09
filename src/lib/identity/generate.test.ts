@@ -4,7 +4,7 @@ import { computeChecksum } from "./checksum";
 import { generateIdentity } from "./generate";
 
 const samplePhoto = "data:image/jpeg;base64,AAAABBBBCCCC";
-const base = { chainStamp: "ethereum" as const };
+const base = { chainStamps: ["ethereum" as const] };
 
 describe("generateIdentity", () => {
   it("is deterministic — same inputs always produce the same identity", () => {
@@ -34,17 +34,27 @@ describe("generateIdentity", () => {
     expect(base_.seed).not.toBe(differentPhoto.seed);
   });
 
-  it("carries the chosen chain stamp through untouched, without affecting the seed", () => {
+  it("carries the chosen chain stamps through untouched, without affecting the seed", () => {
     const baseArgs = { name: "Kay", stack: "React", photoDataUrl: samplePhoto };
-    const ethereum = generateIdentity({ ...baseArgs, chainStamp: "ethereum" });
-    const solana = generateIdentity({ ...baseArgs, chainStamp: "solana" });
-    expect(ethereum.chainStamp).toBe("ethereum");
-    expect(solana.chainStamp).toBe("solana");
-    // Picking a different stamp flavor must not reshuffle the rest of the
+    const ethereum = generateIdentity({ ...baseArgs, chainStamps: ["ethereum"] });
+    const solana = generateIdentity({ ...baseArgs, chainStamps: ["solana", "rust"] });
+    expect(ethereum.chainStamps).toEqual(["ethereum"]);
+    expect(solana.chainStamps).toEqual(["solana", "rust"]);
+    // Picking different stamp flavors must not reshuffle the rest of the
     // identity — it's a personalization choice, not a seed input.
     expect(ethereum.seed).toBe(solana.seed);
     expect(ethereum.tier).toBe(solana.tier);
     expect(ethereum.serial).toBe(solana.serial);
+  });
+
+  it("dedupes and caps chain stamps at MAX_CHAIN_STAMPS", () => {
+    const identity = generateIdentity({
+      name: "Kay",
+      stack: "React",
+      photoDataUrl: samplePhoto,
+      chainStamps: ["ethereum", "ethereum", "solana", "bitcoin", "ai", "rust"],
+    });
+    expect(identity.chainStamps).toEqual(["ethereum", "solana", "bitcoin", "ai"]);
   });
 
   it("produces a serial matching HHG<year>-#### and a recomputable checksum", () => {

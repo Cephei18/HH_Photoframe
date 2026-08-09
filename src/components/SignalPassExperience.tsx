@@ -19,7 +19,7 @@ export function SignalPassExperience() {
   const [pendingValues, setPendingValues] = useState<{
     name: string;
     stack: string;
-    chainStamp: ChainStampId;
+    chainStamps: ChainStampId[];
   } | null>(null);
 
   const stage = !image ? "upload" : !pendingValues ? "details" : "generating";

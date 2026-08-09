@@ -1,4 +1,4 @@
-import { ACCESS_ZONES, EVENT, TERMINALS, TIERS } from "@/lib/constants";
+import { ACCESS_ZONES, EVENT, MAX_CHAIN_STAMPS, TERMINALS, TIERS } from "@/lib/constants";
 import { ARCHETYPE_BANKS, categoryFromStack } from "./banks";
 import { computeChecksum } from "./checksum";
 import { fnv1a, mulberry32, pickIndex, pickWeightedIndex } from "./hash";
@@ -17,10 +17,13 @@ export function generateIdentity(input: GenerateIdentityInput): BuilderIdentity 
   const name = input.name.trim() || "Builder";
   const stack = input.stack.trim();
 
-  // chainStamp is deliberately NOT folded into the seed string below —
+  // chainStamps is deliberately NOT folded into the seed string below —
   // it's a direct personalization choice, not something that should
   // reshuffle someone's tier/archetype/serial if they change their mind
-  // about which stamp flavor they want.
+  // about which stamp flavors they want. Capped defensively even though
+  // the form already enforces the limit, and deduped so picking the same
+  // stamp twice can't produce two overlapping visa stamps on the pass.
+  const chainStamps = [...new Set(input.chainStamps)].slice(0, MAX_CHAIN_STAMPS);
   const seed = fnv1a(`${name}::${stack}::${input.photoDataUrl}`);
   const next = mulberry32(seed);
 
@@ -80,7 +83,7 @@ export function generateIdentity(input: GenerateIdentityInput): BuilderIdentity 
     seed,
     name,
     stack,
-    chainStamp: input.chainStamp,
+    chainStamps,
     archetype,
     archetypeCategory,
     signalRank,

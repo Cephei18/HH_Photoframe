@@ -51,6 +51,35 @@ export const PASS_LAYOUT = {
   edgeMicroprint: { inset: 9, fontSize: 8 },
 
   perforation: { y: PHOTO_H },
+
+  /** A small rotated "Boarding Pass" mark under the Goa mark — the one
+   * explicit label on the card that says what this document is. */
+  boardingBadge: { x: W - 48, y: 118, fontSize: 30, rotationDeg: -6 },
+
+  /**
+   * Fixed slots for the chosen visa stamps, hand-placed to sit in the one
+   * open stretch of photo that nothing else claims: below the masthead/
+   * tier word, above the seal/ghost/tier-stamp cluster in the bottom
+   * band, and clear of each other at every radius below. Chosen stamps
+   * fill these in order, so 1 pick reads as a single confident stamp and
+   * 4 reads as a well-traveled passport page.
+   */
+  visaStampSlots: [
+    { cx: 760, cy: 460, radius: 92, rotationDeg: -12 },
+    { cx: 930, cy: 620, radius: 80, rotationDeg: 16 },
+    { cx: 620, cy: 680, radius: 74, rotationDeg: -8 },
+    { cx: 860, cy: 850, radius: 66, rotationDeg: 20 },
+  ] as const,
+
+  /**
+   * Sits on the photo just under the Boarding Pass badge, NOT in the MRZ
+   * band — the MRZ band's own right-hand stretch looks free on paper, but
+   * the tier stamp/sunburst (radius up to 266, centered at (890,1300)) is
+   * deliberately allowed to cross band boundaries and claims that whole
+   * bottom-right corner (see the tier-stamp comment below), which would
+   * bury a barcode placed there under it.
+   */
+  barcode: { x: 732, y: 150, width: 300, height: 46 },
 } as const;
 
 export const PFP_LAYOUT = {

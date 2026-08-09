@@ -3,7 +3,7 @@ import { generateIdentity } from "@/lib/identity/generate";
 import { buildMrzLines } from "./mrz";
 
 const samplePhoto = "data:image/jpeg;base64,AAAABBBBCCCC";
-const chainStamp = "ethereum" as const;
+const chainStamps = ["ethereum" as const];
 
 describe("buildMrzLines", () => {
   it("produces two fixed-length, MRZ-alphabet-only lines", () => {
@@ -11,7 +11,7 @@ describe("buildMrzLines", () => {
       name: "Kay",
       stack: "React",
       photoDataUrl: samplePhoto,
-      chainStamp,
+      chainStamps,
     });
     const [line1, line2] = buildMrzLines(identity);
     expect(line1).toHaveLength(36);
@@ -25,7 +25,7 @@ describe("buildMrzLines", () => {
       name: "Kay Verma",
       stack: "React",
       photoDataUrl: samplePhoto,
-      chainStamp,
+      chainStamps,
     });
     const [line1] = buildMrzLines(identity);
     expect(line1).toContain("KAY<VERMA");
@@ -37,7 +37,7 @@ describe("buildMrzLines", () => {
       name: "Kay",
       stack: "Go",
       photoDataUrl: samplePhoto,
-      chainStamp,
+      chainStamps,
     });
     const [, line2] = buildMrzLines(identity);
     const serialDigits = identity.serial.split("-")[1];
@@ -49,7 +49,7 @@ describe("buildMrzLines", () => {
       name: "Kay-Élise",
       stack: "C++",
       photoDataUrl: samplePhoto,
-      chainStamp,
+      chainStamps,
     });
     const [line1] = buildMrzLines(identity);
     expect(line1).toMatch(/^[A-Z0-9<]{36}$/);
@@ -60,7 +60,7 @@ describe("buildMrzLines", () => {
       name: "Kay",
       stack: "Rust",
       photoDataUrl: samplePhoto,
-      chainStamp,
+      chainStamps,
     });
     expect(buildMrzLines(identity)).toEqual(buildMrzLines(identity));
   });

@@ -13,7 +13,7 @@ import { PassCanvas } from "./PassCanvas";
 
 type GenerationStageProps = {
   image: ProcessedImage;
-  values: { name: string; stack: string; chainStamp: ChainStampId };
+  values: { name: string; stack: string; chainStamps: ChainStampId[] };
   onStartOver: () => void;
 };
 

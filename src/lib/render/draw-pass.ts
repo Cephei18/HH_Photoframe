@@ -1,5 +1,6 @@
-import { EVENT } from "@/lib/constants";
+import { CHAIN_STAMPS, EVENT, type ChainStampId } from "@/lib/constants";
 import { computeAutoCrop } from "@/lib/image/autocrop";
+import { mulberry32 } from "@/lib/identity/hash";
 import { drawChainGlyph } from "./chain-glyph";
 import { getDuotonePhoto } from "./duotone-cache";
 import { CANVAS_FONTS } from "./font-refs";
@@ -58,7 +59,10 @@ export async function drawPass(ctx: CanvasRenderingContext2D, input: RenderInput
     CANVAS_FONTS.display,
   );
   drawMasthead(ctx, hackerHouseLogo, goaMarkLogo);
+  drawBoardingBadge(ctx);
+  drawBarcode(ctx, identity);
   drawTierWord(ctx, identity.tier, tierColor);
+  drawVisaStamps(ctx, identity);
   drawRegistrationTicks(ctx);
   drawEdgeMicroprint(ctx);
   drawWaveDivider(ctx);
@@ -211,6 +215,137 @@ function drawMasthead(
   ctx.restore();
 }
 
+/** A small rotated "Boarding Pass" mark under the Goa mark — the one
+ * place the card says outright what kind of document it is. */
+function drawBoardingBadge(ctx: CanvasRenderingContext2D): void {
+  const { x, y, fontSize, rotationDeg } = L.boardingBadge;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate((rotationDeg * Math.PI) / 180);
+  ctx.globalAlpha = 0.88;
+  ctx.fillStyle = PALETTE.stamp;
+  ctx.font = `italic 400 ${fontSize}px ${CANVAS_FONTS.official}`;
+  ctx.textAlign = "right";
+  ctx.textBaseline = "alphabetic";
+  ctx.fillText("Boarding Pass", 0, 0);
+  ctx.restore();
+}
+
+/** One ink stamp per chosen stack/chain flavor, filling PASS_LAYOUT's
+ * fixed slots in pick order — a real passport page carries more than one
+ * stamp, so the pass does too. Rotation gets a small per-identity jitter
+ * (derived from the seed, independent of the identity-generation stream)
+ * so the same stamp choice doesn't look mechanically identical on every
+ * pass that picks it.
+ *
+ * Ink colors are fixed brand tones, deliberately NOT `tierColor` — the
+ * "noise" tier color is a muted sage green that all but disappeared
+ * against this same green duotone photo when tried (verified by actually
+ * rendering it), and every color here needs to hold up against a photo
+ * background whose content is unknown ahead of time. Each ring gets its
+ * own label color too: three near-identical dark greens in a row read as
+ * one washed-out color at this size (also verified by rendering it), so
+ * gold gets a turn as a ring color here despite failing text contrast on
+ * its own — paired with an ink-colored label instead of a gold one. */
+const VISA_STAMP_INKS: Array<{ ring: string; label: string }> = [
+  { ring: PALETTE.stamp, label: PALETTE.stamp },
+  { ring: PALETTE.teal, label: PALETTE.teal },
+  { ring: PALETTE.gold, label: PALETTE.ink },
+  { ring: PALETTE.inkDeep, label: PALETTE.inkDeep },
+];
+
+function drawVisaStamps(ctx: CanvasRenderingContext2D, identity: RenderInput["identity"]): void {
+  const jitter = mulberry32(identity.seed ^ 0x2f6e2b1);
+  identity.chainStamps.forEach((stampId, i) => {
+    const slot = L.visaStampSlots[i];
+    if (!slot) return;
+    const rotation = slot.rotationDeg + (jitter() - 0.5) * 14;
+    const theme = VISA_STAMP_INKS[i % VISA_STAMP_INKS.length];
+    drawVisaStamp(ctx, slot.cx, slot.cy, slot.radius, rotation, theme, stampId);
+  });
+}
+
+function drawVisaStamp(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  radius: number,
+  rotationDeg: number,
+  ink: { ring: string; label: string },
+  glyphId: ChainStampId,
+): void {
+  const label = CHAIN_STAMPS.find((c) => c.id === glyphId)?.label ?? glyphId;
+
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate((rotationDeg * Math.PI) / 180);
+
+  // A paper-toned backing disc, mostly opaque — legible over whatever the
+  // photo happens to show underneath. Kept just short of fully solid
+  // (0.85, not 1) so it still reads as an ink wash on the page rather
+  // than a sticker pasted over it.
+  const [r, g, b] = hexToRgb(PALETTE.paperRaised);
+  ctx.fillStyle = `rgba(${r},${g},${b},0.85)`;
+  ctx.beginPath();
+  ctx.arc(0, 0, radius, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.globalAlpha = 0.92;
+  ctx.strokeStyle = ink.ring;
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.arc(0, 0, radius, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(0, 0, radius - 9, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // Radial dial ticks between the two rings — the same customs-stamp
+  // detail language as the guilloché seal, at a smaller scale.
+  ctx.lineWidth = 1.4;
+  for (let i = 0; i < 28; i++) {
+    const angle = (i / 28) * Math.PI * 2;
+    ctx.beginPath();
+    ctx.moveTo(Math.cos(angle) * (radius - 9), Math.sin(angle) * (radius - 9));
+    ctx.lineTo(Math.cos(angle) * (radius - 3), Math.sin(angle) * (radius - 3));
+    ctx.stroke();
+  }
+
+  drawChainGlyph(ctx, glyphId, 0, -radius * 0.2, radius * 0.34, ink.ring);
+
+  ctx.fillStyle = ink.label;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.font = `700 ${Math.round(radius * 0.15)}px ${CANVAS_FONTS.mono}`;
+  ctx.fillText(label.toUpperCase(), 0, radius * 0.46);
+
+  ctx.restore();
+}
+
+/** A paper-dart silhouette — the tier stamp's center glyph now that the
+ * chosen stack/chain flavors have their own stamps (see drawVisaStamps).
+ * This one is about departure, not personalization. */
+function drawDepartureGlyph(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  scale: number,
+  color: string,
+): void {
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate((-38 * Math.PI) / 180);
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(0, -scale);
+  ctx.lineTo(scale * 0.78, scale * 0.85);
+  ctx.lineTo(0, scale * 0.4);
+  ctx.lineTo(-scale * 0.78, scale * 0.85);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
 function drawTierWord(ctx: CanvasRenderingContext2D, tier: string, tierColor: string): void {
   const { insetTop, insetX, size } = L.tierWord;
   const label = tier.toUpperCase();
@@ -323,6 +458,42 @@ function drawMrz(ctx: CanvasRenderingContext2D, identity: RenderInput["identity"
   fillTextTracked(ctx, line2, L.margin, y + height * 0.72, 3);
 }
 
+/** A faux Code128-style barcode stamped on the photo itself, under the
+ * Boarding Pass badge — bar widths/gaps are derived from the
+ * verification ID and serial digits (deterministic, not decodable), the
+ * same "genuinely built from real fields" spirit as the MRZ text below.
+ * Carries its own opaque backing card since, unlike the MRZ band, it
+ * sits directly on unpredictable photo content. */
+function drawBarcode(ctx: CanvasRenderingContext2D, identity: RenderInput["identity"]): void {
+  const { x, y, width, height } = L.barcode;
+  const padding = 10;
+
+  ctx.save();
+  const [r, g, b] = hexToRgb(PALETTE.paperRaised);
+  ctx.fillStyle = `rgba(${r},${g},${b},0.92)`;
+  ctx.fillRect(x - padding, y - padding, width + padding * 2, height + padding * 2);
+
+  const barsHeight = height * 0.6;
+  const source = `${identity.verificationId}${identity.serial.replace(/\D/g, "")}`;
+  ctx.fillStyle = PALETTE.ink;
+  let cursor = x;
+  for (let i = 0; i < source.length; i++) {
+    const code = source.charCodeAt(i);
+    const barWidth = 1.5 + (code % 5);
+    const gap = 1.5 + ((code >> 3) % 4);
+    if (cursor + barWidth > x + width) break;
+    ctx.fillRect(cursor, y, barWidth, barsHeight);
+    cursor += barWidth + gap;
+  }
+
+  ctx.font = `500 11px ${CANVAS_FONTS.mono}`;
+  ctx.fillStyle = PALETTE.inkFaint;
+  ctx.textAlign = "left";
+  ctx.textBaseline = "alphabetic";
+  ctx.fillText(identity.verificationId, x, y + height - 4);
+  ctx.restore();
+}
+
 function drawPerforation(ctx: CanvasRenderingContext2D): void {
   const y = L.perforation.y;
   ctx.save();
@@ -421,10 +592,16 @@ function drawTierStamp(
   ctx.textBaseline = "middle";
   ctx.fillText(identity.tier.toUpperCase(), 0, -radius * 0.44);
 
-  // Chosen visa-stamp flavor — the one field the person picked themselves.
-  drawChainGlyph(ctx, identity.chainStamp, 0, 0, radius * 0.22, tierColor);
+  drawDepartureGlyph(ctx, 0, 0, radius * 0.22, tierColor);
+  // Deliberately PALETTE.ink, not tierColor — the Alpha tier's color is
+  // gold, which fails text contrast on this same cream backing disc (see
+  // palette.ts), and this line is exactly the small-text case that rule
+  // warns about (verified by actually rendering the Alpha tier: "GATE B
+  // · 09:02 IST" in gold was nearly unreadable). The big tier word above
+  // keeps the pre-existing tierColor treatment — out of scope here.
+  ctx.fillStyle = PALETTE.ink;
   ctx.font = `500 ${Math.round(radius * 0.095)}px ${CANVAS_FONTS.mono}`;
-  ctx.fillText(identity.chainStamp.toUpperCase(), 0, radius * 0.34);
+  ctx.fillText(`GATE ${identity.accessZoneCode} · ${identity.arrivalTime}`, 0, radius * 0.34);
 
   ctx.font = `500 ${Math.round(radius * 0.07)}px ${CANVAS_FONTS.mono}`;
   ctx.fillStyle = PALETTE.inkSoft;
