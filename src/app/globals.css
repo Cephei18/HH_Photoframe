@@ -269,3 +269,33 @@
     @apply font-sans;
   }
 }
+
+/* Departure-board ticker (Ticker in page.tsx) — two identical rows sit
+   side by side and the track slides exactly one row-width, so the loop
+   point is invisible. */
+@keyframes marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee {
+  animation: marquee 30s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee {
+    animation-play-state: paused;
+  }
+}
+
+/* Airport-caution diagonal stripe, used as a hazard-tape section divider. */
+.bg-hazard {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    var(--gold) 0,
+    var(--gold) 10px,
+    var(--ink) 10px,
+    var(--ink) 20px
+  );
+}

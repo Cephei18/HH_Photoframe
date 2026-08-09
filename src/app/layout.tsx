@@ -3,9 +3,9 @@ import { EVENT } from "@/lib/constants";
 import { fontVariables } from "@/lib/fonts";
 import "./globals.css";
 
-const title = "The Signal Pass — Hacker House Goa 2026";
+const title = "The Signal Pass · Hacker House Goa 2026";
 const description =
-  "Upload a photo. Get your official HH Goa 2026 builder credential — a Signal Pass, tiered, stamped, and ready to post.";
+  "Upload a photo. Get your official HH Goa 2026 builder credential: a Signal Pass, tiered, stamped, and ready to post.";
 
 export const metadata: Metadata = {
   // Falls back to localhost in dev; set NEXT_PUBLIC_SITE_URL in production
