@@ -4,11 +4,10 @@ import { mulberry32 } from "@/lib/identity/hash";
 import { getClearPhoto } from "./clear-photo-cache";
 import { drawChainGlyph } from "./chain-glyph";
 import { CANVAS_FONTS } from "./font-refs";
-import { drawGuilloche } from "./guilloche";
 import { PASS_LAYOUT } from "./layout";
 import { BRAND_LOGOS, loadLogo } from "./logo-cache";
 import { buildMrzLines } from "./mrz";
-import { hexToRgb, PALETTE, TIER_COLOR } from "./palette";
+import { hexToRgb, PALETTE } from "./palette";
 import { createGrainPattern } from "./texture";
 import { fillTextTracked } from "./text";
 import type { RenderInput } from "./types";
@@ -26,7 +25,6 @@ const L = PASS_LAYOUT;
  */
 export async function drawPass(ctx: CanvasRenderingContext2D, input: RenderInput): Promise<void> {
   const { identity, image } = input;
-  const tierColor = TIER_COLOR[identity.tier];
 
   ctx.clearRect(0, 0, L.width, L.height);
 
@@ -54,7 +52,7 @@ export async function drawPass(ctx: CanvasRenderingContext2D, input: RenderInput
   ctx.fillRect(0, 0, L.width, L.height);
 
   drawWatermark(ctx, sceneArt);
-  drawHeader(ctx, hackerHouseLogo, goaMarkLogo, sealColorFor(identity.tier, tierColor), identity.sealVariation);
+  drawHeader(ctx, hackerHouseLogo, goaMarkLogo, studioLogo);
   drawPhotoBox(ctx, photo.canvas, crop);
   drawVisaStamps(ctx, identity);
   drawStudioStamp(ctx, L.studioStamp.cx, L.studioStamp.cy, L.studioStamp.radius, studioLogo);
@@ -117,31 +115,16 @@ function drawWatermark(ctx: CanvasRenderingContext2D, art: HTMLImageElement): vo
   ctx.restore();
 }
 
-/** Alpha's tier color is bright gold, which fails line/text contrast on
- * the seal's cream backing below (same rule palette.ts documents for
- * text-on-cream generally, and the same bug already caught once on this
- * card's tier stamp before this redesign — verified again here by
- * actually rendering the Alpha tier: the seal nearly disappeared). This
- * darkened goldenrod is the exact substitution globals.css's own
- * light-mode `--alpha` token already makes for the identical reason —
- * reused here since the canvas renderer can't read that CSS variable. */
-function sealColorFor(tier: RenderInput["identity"]["tier"], tierColor: string): string {
-  return tier === "alpha" ? "#B8860B" : tierColor;
-}
-
 /** The two-tone header — a flamingo accent block carrying "HH VISA," a
- * jungle-green main block carrying the Hacker House + Goa marks, and a
- * guilloché seal straddling the seam between them. Same composition as a
- * real US visa's blue "VISA" block + red country-name block + eagle. The
- * 2:47PM Studio credit lives below the photo instead (see
- * drawStudioStamp) — a proper circular stamp of its own, not a fourth
- * logo squeezed into an already-full 150px header. */
+ * jungle-green main block carrying the Hacker House + Goa marks, and the
+ * 2:47PM Studio mark straddling the seam between them. Same composition
+ * as a real US visa's blue "VISA" block + red country-name block + eagle
+ * seal. */
 function drawHeader(
   ctx: CanvasRenderingContext2D,
   hackerHouseLogo: HTMLImageElement,
   goaMarkLogo: HTMLImageElement,
-  sealColor: string,
-  sealVariation: number,
+  studioLogo: HTMLImageElement,
 ): void {
   const { height, accentWidth } = L.header;
 
@@ -166,14 +149,18 @@ function drawHeader(
   ctx.drawImage(goaMarkLogo, L.width - inset - goaWidth, 14, goaWidth, goaMarkHeight);
 
   const { cx, cy, radius } = L.emblem;
-  const [r, g, b] = hexToRgb(PALETTE.paperRaised);
   ctx.save();
   ctx.beginPath();
   ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-  ctx.fillStyle = `rgb(${r},${g},${b})`;
+  ctx.fillStyle = PALETTE.paperRaised;
   ctx.fill();
   ctx.clip();
-  drawGuilloche(ctx, cx, cy, radius - 4, sealVariation, sealColor, CANVAS_FONTS.display);
+  // 0.85 keeps the ~1.63:1 logo comfortably inside the circle (the exact
+  // inscribed-rectangle max for that aspect ratio is ~1.05x radius) —
+  // verified by actually rendering it against the emblem's radius.
+  const studioHeight = radius * 0.85;
+  const studioWidth = studioHeight * (studioLogo.naturalWidth / studioLogo.naturalHeight);
+  ctx.drawImage(studioLogo, cx - studioWidth / 2, cy - studioHeight / 2, studioWidth, studioHeight);
   ctx.restore();
 
   ctx.strokeStyle = PALETTE.ink;

@@ -25,7 +25,7 @@ export default function Home() {
       <Ticker />
 
       <header className="border-line border-b px-5 py-5 sm:px-8">
-        <div className="mx-auto flex max-w-xl flex-col gap-4 lg:max-w-3xl xl:max-w-4xl">
+        <div className="flex w-full flex-col gap-4">
           <div className="flex items-start justify-between gap-4">
             <Image
               src="/brand/hacker-house.png"
@@ -108,7 +108,7 @@ export default function Home() {
       <div className="bg-hazard h-2 w-full" />
 
       <footer className="border-line border-t px-5 py-5 sm:px-8">
-        <div className="mx-auto flex max-w-xl flex-col gap-3 lg:max-w-3xl xl:max-w-4xl">
+        <div className="flex w-full flex-col gap-3">
           <div className="text-ink-faint flex flex-wrap justify-between gap-2 font-mono text-[11px]">
             <span className="text-stamp uppercase">{EVENT.motto}</span>
             <span>{EVENT.coordinatesLabel}</span>

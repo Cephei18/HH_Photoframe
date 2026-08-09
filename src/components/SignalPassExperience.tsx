@@ -34,7 +34,7 @@ export function SignalPassExperience() {
   return (
     <div className="flex w-full flex-col gap-6">
       {stage === "upload" ? (
-        <div className="w-full sm:max-w-sm">
+        <div className="mx-auto w-full sm:max-w-sm">
           <UploadStage
             status={status}
             image={image}
@@ -47,7 +47,7 @@ export function SignalPassExperience() {
       ) : null}
 
       {stage === "details" ? (
-        <div className="w-full sm:max-w-sm">
+        <div className="mx-auto w-full sm:max-w-sm">
           <IdentityForm onSubmit={setPendingValues} />
         </div>
       ) : null}
