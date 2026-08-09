@@ -35,6 +35,7 @@ export default function Home() {
               priority
               className="h-8 w-auto sm:h-9"
             />
+            {/* eslint-disable-next-line @next/next/no-img-element -- a small static SVG credit mark, no optimization needed */}
             <img
               src="/brand/247pm-studio.svg"
               alt={ORGANIZER.name}
@@ -65,7 +66,15 @@ export default function Home() {
           <h1 className="font-official text-ink text-6xl leading-[0.95] tracking-tight sm:text-7xl">
             Hacker House
             <br />
-            <span className="text-stamp italic">Goa Terminal</span>
+            <span className="text-stamp inline-flex items-center gap-3 italic">
+              {/* eslint-disable-next-line @next/next/no-img-element -- a small static SVG mark, no optimization needed */}
+              <img
+                src="/brand/goa-mark.svg"
+                alt="Goa"
+                className="h-[0.8em] w-auto shrink-0 -rotate-3"
+              />
+              Terminal
+            </span>
           </h1>
 
           <span className="border-stamp text-stamp font-display inline-block -rotate-6 border-2 px-3 py-1 text-sm font-bold tracking-widest uppercase">
