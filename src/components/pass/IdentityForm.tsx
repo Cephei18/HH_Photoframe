@@ -58,7 +58,7 @@ export function IdentityForm({ onSubmit, submitting }: IdentityFormProps) {
           id="builder-name"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="Kay"
+          placeholder="Santoshi Nakamoto"
           maxLength={40}
           required
           autoComplete="name"

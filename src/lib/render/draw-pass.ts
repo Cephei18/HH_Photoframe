@@ -1,252 +1,232 @@
-import { CHAIN_STAMPS, EVENT, type ChainStampId } from "@/lib/constants";
+import { ACCESS_ZONES, CHAIN_STAMPS, EVENT, type ChainStampId } from "@/lib/constants";
 import { computeAutoCrop } from "@/lib/image/autocrop";
 import { mulberry32 } from "@/lib/identity/hash";
+import { getClearPhoto } from "./clear-photo-cache";
 import { drawChainGlyph } from "./chain-glyph";
-import { getDuotonePhoto } from "./duotone-cache";
 import { CANVAS_FONTS } from "./font-refs";
 import { drawGuilloche } from "./guilloche";
 import { PASS_LAYOUT } from "./layout";
 import { BRAND_LOGOS, loadLogo } from "./logo-cache";
 import { buildMrzLines } from "./mrz";
 import { hexToRgb, PALETTE, TIER_COLOR } from "./palette";
-import { drawScallopWave, drawSunburst } from "./retro-motifs";
-import { createGrainPattern, createHalftonePattern } from "./texture";
-import { fillTextTracked, repeatToWidth } from "./text";
+import { createGrainPattern } from "./texture";
+import { fillTextTracked } from "./text";
 import type { RenderInput } from "./types";
 
 const L = PASS_LAYOUT;
 
-/** Draws the complete Builder Pass into `ctx`'s logical 1080×1512 space.
- * Called identically by the live preview and the export pipeline — see
- * canvas.ts — which is what makes the two pixel-identical by construction
- * rather than by coincidence. */
+/**
+ * Draws the complete Builder Visa into `ctx`'s logical 1600×1040 space —
+ * modeled directly on a real US visa sticker: two-tone header with a seal
+ * on the seam, a mounted ID photo, a labeled field grid over a faint
+ * watermark drawing, a highlighted document-number callout, and an
+ * MRZ/OCR strip along the bottom. Called identically by the live preview
+ * and the export pipeline — see canvas.ts — which is what makes the two
+ * pixel-identical by construction rather than by coincidence.
+ */
 export async function drawPass(ctx: CanvasRenderingContext2D, input: RenderInput): Promise<void> {
   const { identity, image } = input;
   const tierColor = TIER_COLOR[identity.tier];
 
   ctx.clearRect(0, 0, L.width, L.height);
-  ctx.fillStyle = PALETTE.paperRaised;
-  ctx.fillRect(0, 0, L.width, L.height);
 
-  // Logos load in parallel with the (slower) photo processing — loading
-  // them serially afterward would just add their fetch/decode time on top
-  // for no reason.
-  const [photo, hackerHouseLogo, goaMarkLogo] = await Promise.all([
-    getDuotonePhoto(image.dataUrl),
+  // Logos/watermark load in parallel with the (slower) photo decode —
+  // loading them serially afterward would just add their fetch/decode
+  // time on top for no reason.
+  const [photo, hackerHouseLogo, goaMarkLogo, studioLogo, sceneArt] = await Promise.all([
+    getClearPhoto(image.dataUrl),
     loadLogo(BRAND_LOGOS.hackerHouse),
     loadLogo(BRAND_LOGOS.goaMark),
+    loadLogo(BRAND_LOGOS.studio),
+    loadLogo(BRAND_LOGOS.goaScene),
   ]);
-  const crop = computeAutoCrop(
-    photo.width,
-    photo.height,
-    L.photo.width / L.photo.height,
-    image.focal,
-  );
-  const duotoneSource = photo.canvas;
+  const crop = computeAutoCrop(photo.width, photo.height, L.photo.width / L.photo.height, image.focal);
 
-  drawPhoto(ctx, duotoneSource, crop);
-  drawHalftoneOverlay(ctx, identity.seed);
-  drawLatentWatermark(ctx);
-  drawGhost(ctx, duotoneSource, crop);
-  drawSealBacking(ctx);
-  drawGuilloche(
+  // Everything below is clipped to the card's own rounded corners — a
+  // laminated ID card's corners, not this brand's usual hard-edged UI
+  // chrome (that rule is a website convention; the canvas pass has always
+  // been its own deliberately-decoupled visual system — see palette.ts).
+  ctx.save();
+  roundedRectPath(ctx, 0, 0, L.width, L.height, L.cornerRadius);
+  ctx.clip();
+
+  ctx.fillStyle = PALETTE.visaBg;
+  ctx.fillRect(0, 0, L.width, L.height);
+
+  drawWatermark(ctx, sceneArt);
+  drawHeader(
     ctx,
-    L.seal.cx,
-    L.seal.cy,
-    L.seal.radius,
+    hackerHouseLogo,
+    goaMarkLogo,
+    studioLogo,
+    sealColorFor(identity.tier, tierColor),
     identity.sealVariation,
-    tierColor,
-    CANVAS_FONTS.display,
   );
-  drawMasthead(ctx, hackerHouseLogo, goaMarkLogo);
-  drawBoardingBadge(ctx);
-  drawBarcode(ctx, identity);
-  drawTierWord(ctx, identity.tier, tierColor);
+  drawPhotoBox(ctx, photo.canvas, crop);
   drawVisaStamps(ctx, identity);
-  drawRegistrationTicks(ctx);
-  drawEdgeMicroprint(ctx);
-  drawWaveDivider(ctx);
-
-  drawStrip(ctx, identity);
-  drawMrz(ctx, identity);
-  drawPerforation(ctx);
-  drawMicroBand(ctx);
-
-  drawStampSunburst(ctx);
-  drawTierStamp(ctx, identity, tierColor);
+  drawFieldGrid(ctx, identity);
+  drawAnnotation(ctx, identity);
+  drawVisaNumberBox(ctx, identity);
+  drawFooter(ctx, identity);
   drawGrain(ctx, identity.seed);
+
+  ctx.restore();
+
+  // The border is stroked outside the clip so the full line weight shows
+  // — clipping first would shave its outer half off along every edge.
+  roundedRectPath(ctx, 0, 0, L.width, L.height, L.cornerRadius);
+  ctx.strokeStyle = PALETTE.ink;
+  ctx.lineWidth = 2;
+  ctx.stroke();
 }
 
-function drawPhoto(
+function roundedRectPath(
   ctx: CanvasRenderingContext2D,
-  source: HTMLCanvasElement,
-  crop: { x: number; y: number; width: number; height: number },
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number,
 ): void {
-  ctx.drawImage(
-    source,
-    crop.x,
-    crop.y,
-    crop.width,
-    crop.height,
-    L.photo.x,
-    L.photo.y,
-    L.photo.width,
-    L.photo.height,
-  );
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
 }
 
-function drawHalftoneOverlay(ctx: CanvasRenderingContext2D, seed: number): void {
+/** The field grid's own background drawing — a real visa's Capitol-dome
+ * watermark, played here by the actual Goa artwork supplied for this
+ * card. Kept deliberately faint: this is security-paper texture, not an
+ * illustration competing with the text drawn over it. */
+function drawWatermark(ctx: CanvasRenderingContext2D, art: HTMLImageElement): void {
+  const { x, y, width, height } = L.watermark;
   ctx.save();
   ctx.beginPath();
-  ctx.rect(L.photo.x, L.photo.y, L.photo.width, L.photo.height);
-  ctx.clip();
-  ctx.globalAlpha = 0.07;
-  ctx.fillStyle = createHalftonePattern(ctx, PALETTE.ink, seed);
-  ctx.fillRect(L.photo.x, L.photo.y, L.photo.width, L.photo.height);
-  ctx.restore();
-}
-
-function drawLatentWatermark(ctx: CanvasRenderingContext2D): void {
-  ctx.save();
-  ctx.beginPath();
-  ctx.rect(L.photo.x, L.photo.y, L.photo.width, L.photo.height);
+  ctx.rect(x, y, width, height);
   ctx.clip();
 
-  ctx.font = `400 15px ${CANVAS_FONTS.mono}`;
-  ctx.fillStyle = "rgba(250,244,228,0.09)";
-  ctx.textAlign = "left";
-  ctx.translate(L.photo.width / 2, L.photo.height / 2);
-  ctx.rotate((-32 * Math.PI) / 180);
-
-  // Rotating the fill grid means it needs to cover more than the photo's
-  // own width/height to reach every corner post-rotation — sized off the
-  // rect's diagonal (with margin) rather than its axis-aligned extent, so
-  // there's no gap at the rotated corners.
-  const label = `${EVENT.coordinatesLabel}   `;
-  const lineWidth = ctx.measureText(label).width;
-  const halfDiagonal = Math.hypot(L.photo.width, L.photo.height) / 2;
-  const cols = Math.ceil(halfDiagonal / lineWidth) + 2;
-  const rowSpacing = 42;
-  const rows = Math.ceil(halfDiagonal / rowSpacing) + 2;
-  for (let row = -rows; row < rows; row++) {
-    for (let col = -cols; col < cols; col++) {
-      ctx.fillText(label, col * lineWidth, row * rowSpacing);
-    }
-  }
-  ctx.restore();
-}
-
-/** A translucent cream disc behind the guilloché seal — without it, fine
- * tier-colored engraving lines drawn directly over a similarly-toned
- * duotone photo (verified by actually rendering this: the "noise" tier's
- * sage-green lines all but vanished into the photo's own green shadows)
- * are nearly invisible regardless of what tier color ends up drawn there. */
-function drawSealBacking(ctx: CanvasRenderingContext2D): void {
-  const { cx, cy, radius } = L.seal;
-  const [r, g, b] = hexToRgb(PALETTE.paperRaised);
-  ctx.save();
-  ctx.fillStyle = `rgba(${r},${g},${b},0.6)`;
-  ctx.beginPath();
-  ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.restore();
-}
-
-function drawGhost(
-  ctx: CanvasRenderingContext2D,
-  source: HTMLCanvasElement,
-  crop: { x: number; y: number; width: number; height: number },
-): void {
-  const { size, cx, cy, opacity } = L.ghost;
-  // The main crop's aspect ratio isn't square — take a centered square
-  // sub-crop of it so the ghost doesn't stretch relative to the photo above it.
-  const squareSide = Math.min(crop.width, crop.height);
-  const squareX = crop.x + (crop.width - squareSide) / 2;
-  const squareY = crop.y + (crop.height - squareSide) / 2;
-
-  ctx.save();
-  ctx.globalAlpha = opacity;
-  ctx.filter = "grayscale(1)";
+  ctx.globalAlpha = 0.16;
+  ctx.filter = "grayscale(0.6) sepia(0.35)";
+  const scale = Math.max(width / art.naturalWidth, height / art.naturalHeight);
+  const drawWidth = art.naturalWidth * scale;
+  const drawHeight = art.naturalHeight * scale;
   ctx.drawImage(
-    source,
-    squareX,
-    squareY,
-    squareSide,
-    squareSide,
-    cx - size / 2,
-    cy - size / 2,
-    size,
-    size,
+    art,
+    x + (width - drawWidth) / 2,
+    y + (height - drawHeight) / 2,
+    drawWidth,
+    drawHeight,
   );
   ctx.restore();
 }
 
-/** The two official marks, drawn as the real logo assets (public/brand/,
- * copied verbatim from reference/) rather than a typeset reconstruction —
- * every previous version of this function approximated them with canvas
- * text. Each is drawn at its own natural aspect ratio, only height fixed. */
-function drawMasthead(
+/** Alpha's tier color is bright gold, which fails line/text contrast on
+ * the seal's cream backing below (same rule palette.ts documents for
+ * text-on-cream generally, and the same bug already caught once on this
+ * card's tier stamp before this redesign — verified again here by
+ * actually rendering the Alpha tier: the seal nearly disappeared). This
+ * darkened goldenrod is the exact substitution globals.css's own
+ * light-mode `--alpha` token already makes for the identical reason —
+ * reused here since the canvas renderer can't read that CSS variable. */
+function sealColorFor(tier: RenderInput["identity"]["tier"], tierColor: string): string {
+  return tier === "alpha" ? "#B8860B" : tierColor;
+}
+
+/** The two-tone header — a flamingo accent block carrying "HH VISA," a
+ * jungle-green main block carrying the three official marks, and a
+ * guilloché seal straddling the seam between them. Same composition as a
+ * real US visa's blue "VISA" block + red country-name block + eagle. */
+function drawHeader(
   ctx: CanvasRenderingContext2D,
   hackerHouseLogo: HTMLImageElement,
   goaMarkLogo: HTMLImageElement,
+  studioLogo: HTMLImageElement,
+  sealColor: string,
+  sealVariation: number,
 ): void {
-  const { insetTop, insetX, hackerHouseHeight, goaMarkHeight, captionSize } = L.masthead;
+  const { height, accentWidth } = L.header;
+
+  ctx.fillStyle = PALETTE.stamp;
+  ctx.fillRect(0, 0, accentWidth, height);
+  ctx.fillStyle = PALETTE.ink;
+  ctx.fillRect(accentWidth, 0, L.width - accentWidth, height);
+
   ctx.save();
-
-  const hhWidth =
-    hackerHouseHeight * (hackerHouseLogo.naturalWidth / hackerHouseLogo.naturalHeight);
-  ctx.drawImage(hackerHouseLogo, insetX, insetTop, hhWidth, hackerHouseHeight);
-
   ctx.fillStyle = PALETTE.paperRaised;
-  ctx.font = `500 ${captionSize}px ${CANVAS_FONTS.mono}`;
+  ctx.font = `700 ${L.accentLabel.fontSize}px ${CANVAS_FONTS.display}`;
   ctx.textAlign = "left";
-  ctx.textBaseline = "top";
-  fillTextTracked(
-    ctx,
-    `${EVENT.name.toUpperCase()} · ${EVENT.year}`,
-    insetX,
-    insetTop + hackerHouseHeight + 8,
-    2,
+  ctx.textBaseline = "alphabetic";
+  ctx.fillText("HH VISA", L.accentLabel.x, L.accentLabel.y);
+  ctx.restore();
+
+  const { hackerHouseHeight, hackerHouseX, hackerHouseY, goaMarkHeight, studioHeight, inset } =
+    L.masthead;
+  const hhWidth = hackerHouseHeight * (hackerHouseLogo.naturalWidth / hackerHouseLogo.naturalHeight);
+  ctx.drawImage(hackerHouseLogo, hackerHouseX, hackerHouseY, hhWidth, hackerHouseHeight);
+
+  const goaWidth = goaMarkHeight * (goaMarkLogo.naturalWidth / goaMarkLogo.naturalHeight);
+  ctx.drawImage(goaMarkLogo, L.width - inset - goaWidth, 14, goaWidth, goaMarkHeight);
+
+  const studioWidth = studioHeight * (studioLogo.naturalWidth / studioLogo.naturalHeight);
+  ctx.drawImage(
+    studioLogo,
+    L.width - inset - studioWidth,
+    height - studioHeight - 14,
+    studioWidth,
+    studioHeight,
   );
 
-  const markWidth = goaMarkHeight * (goaMarkLogo.naturalWidth / goaMarkLogo.naturalHeight);
-  ctx.drawImage(goaMarkLogo, L.width - insetX - markWidth, insetTop - 6, markWidth, goaMarkHeight);
-
+  const { cx, cy, radius } = L.emblem;
+  const [r, g, b] = hexToRgb(PALETTE.paperRaised);
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+  ctx.fillStyle = `rgb(${r},${g},${b})`;
+  ctx.fill();
+  ctx.clip();
+  drawGuilloche(ctx, cx, cy, radius - 4, sealVariation, sealColor, CANVAS_FONTS.display);
   ctx.restore();
+
+  ctx.strokeStyle = PALETTE.ink;
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+  ctx.stroke();
 }
 
-/** A small rotated "Boarding Pass" mark under the Goa mark — the one
- * place the card says outright what kind of document it is. */
-function drawBoardingBadge(ctx: CanvasRenderingContext2D): void {
-  const { x, y, fontSize, rotationDeg } = L.boardingBadge;
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.rotate((rotationDeg * Math.PI) / 180);
-  ctx.globalAlpha = 0.88;
-  ctx.fillStyle = PALETTE.stamp;
-  ctx.font = `italic 400 ${fontSize}px ${CANVAS_FONTS.official}`;
-  ctx.textAlign = "right";
-  ctx.textBaseline = "alphabetic";
-  ctx.fillText("Boarding Pass", 0, 0);
-  ctx.restore();
+/** The mounted ID photo — plain and clear, the way an actual visa photo
+ * has to be (see clear-photo-cache.ts), in a simple ink-framed box. */
+function drawPhotoBox(
+  ctx: CanvasRenderingContext2D,
+  source: HTMLCanvasElement,
+  crop: { x: number; y: number; width: number; height: number },
+): void {
+  const { x, y, width, height } = L.photo;
+  ctx.drawImage(source, crop.x, crop.y, crop.width, crop.height, x, y, width, height);
+  ctx.strokeStyle = PALETTE.ink;
+  ctx.lineWidth = 4;
+  ctx.strokeRect(x + 2, y + 2, width - 4, height - 4);
 }
 
 /** One ink stamp per chosen stack/chain flavor, filling PASS_LAYOUT's
- * fixed slots in pick order — a real passport page carries more than one
- * stamp, so the pass does too. Rotation gets a small per-identity jitter
- * (derived from the seed, independent of the identity-generation stream)
- * so the same stamp choice doesn't look mechanically identical on every
- * pass that picks it.
+ * fixed slots in pick order and spilling slightly past the photo's own
+ * edge — a real re-entry stamp doesn't respect the photo's border either.
+ * Rotation gets a small per-identity jitter (derived from the seed,
+ * independent of the identity-generation stream) so the same stamp
+ * choice doesn't look mechanically identical on every visa that picks it.
  *
  * Ink colors are fixed brand tones, deliberately NOT `tierColor` — the
  * "noise" tier color is a muted sage green that all but disappeared
- * against this same green duotone photo when tried (verified by actually
- * rendering it), and every color here needs to hold up against a photo
- * background whose content is unknown ahead of time. Each ring gets its
- * own label color too: three near-identical dark greens in a row read as
- * one washed-out color at this size (also verified by rendering it), so
- * gold gets a turn as a ring color here despite failing text contrast on
- * its own — paired with an ink-colored label instead of a gold one. */
+ * against a duotone photo when tried in an earlier version of this card
+ * (verified by actually rendering it), and every color here needs to
+ * hold up regardless of what tier or photo it lands on. Each ring gets
+ * its own label color too: three near-identical dark greens in a row
+ * read as one washed-out color at this size (also verified by rendering
+ * it), so gold gets a turn as a ring color here despite failing text
+ * contrast on its own — paired with an ink-colored label instead. */
 const VISA_STAMP_INKS: Array<{ ring: string; label: string }> = [
   { ring: PALETTE.stamp, label: PALETTE.stamp },
   { ring: PALETTE.teal, label: PALETTE.teal },
@@ -301,7 +281,7 @@ function drawVisaStamp(
   ctx.stroke();
 
   // Radial dial ticks between the two rings — the same customs-stamp
-  // detail language as the guilloché seal, at a smaller scale.
+  // detail language as the header's guilloché seal, at a smaller scale.
   ctx.lineWidth = 1.4;
   for (let i = 0; i < 28; i++) {
     const angle = (i / 28) * Math.PI * 2;
@@ -322,297 +302,157 @@ function drawVisaStamp(
   ctx.restore();
 }
 
-/** A paper-dart silhouette — the tier stamp's center glyph now that the
- * chosen stack/chain flavors have their own stamps (see drawVisaStamps).
- * This one is about departure, not personalization. */
-function drawDepartureGlyph(
-  ctx: CanvasRenderingContext2D,
-  cx: number,
-  cy: number,
-  scale: number,
-  color: string,
-): void {
-  ctx.save();
-  ctx.translate(cx, cy);
-  ctx.rotate((-38 * Math.PI) / 180);
-  ctx.fillStyle = color;
-  ctx.beginPath();
-  ctx.moveTo(0, -scale);
-  ctx.lineTo(scale * 0.78, scale * 0.85);
-  ctx.lineTo(0, scale * 0.4);
-  ctx.lineTo(-scale * 0.78, scale * 0.85);
-  ctx.closePath();
-  ctx.fill();
-  ctx.restore();
+type FieldRow = { label: string; value: string };
+
+/** Splits a free-typed full name into given/surname the way a document
+ * would — last word is the surname, everything before it is given
+ * name(s). A single-word name (or an empty one, defaulted upstream to
+ * "Builder") is used as both, rather than leaving one field blank. */
+function splitName(name: string): { given: string; surname: string } {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length <= 1) return { given: parts[0] ?? "", surname: parts[0] ?? "" };
+  return { given: parts.slice(0, -1).join(" "), surname: parts[parts.length - 1] };
 }
 
-function drawTierWord(ctx: CanvasRenderingContext2D, tier: string, tierColor: string): void {
-  const { insetTop, insetX, size } = L.tierWord;
-  const label = tier.toUpperCase();
-  ctx.save();
-  ctx.font = `700 ${size}px ${CANVAS_FONTS.display}`;
-  ctx.textAlign = "left";
-  ctx.textBaseline = "top";
-
-  // A dark offset shadow behind the yellow-cream word — the same poster
-  // treatment as the real "HACKER HOUSE" wordmark (reference/Hacker house.png).
-  ctx.fillStyle = PALETTE.inkDeep;
-  ctx.fillText(label, insetX + size * 0.035, insetTop + size * 0.045);
-
-  ctx.fillStyle = PALETTE.paperRaised;
-  ctx.fillText(label, insetX, insetTop);
-
-  // A thin accent rule under the word, in the tier color — the one place
-  // the tier color appears at full strength outside the stamp/seal.
-  const width = ctx.measureText(label).width;
-  ctx.fillStyle = tierColor;
-  ctx.fillRect(insetX, insetTop + size * 0.92, width, 6);
-  ctx.restore();
-}
-
-function drawRegistrationTicks(ctx: CanvasRenderingContext2D): void {
-  const { inset, arm } = L.registrationTick;
-  const corners: Array<[number, number, number, number]> = [
-    [inset, inset, 1, 1],
-    [L.photo.width - inset, inset, -1, 1],
-    [inset, L.photo.height - inset, 1, -1],
-    [L.photo.width - inset, L.photo.height - inset, -1, -1],
+/** Maps the identity onto the two field columns — every value here is a
+ * real field from the identity model, reinterpreted into a visa's own
+ * vocabulary (e.g. "Nationality" ← the archetype's tech-tribe category),
+ * never invented filler. */
+function buildFieldColumns(identity: RenderInput["identity"]): { colA: FieldRow[]; colB: FieldRow[] } {
+  const { given, surname } = splitName(identity.name);
+  const colA: FieldRow[] = [
+    { label: "Issuing Post", value: identity.accessZoneName.toUpperCase() },
+    { label: "Surname", value: surname.toUpperCase() },
+    { label: "Given Name", value: given.toUpperCase() },
+    { label: "Passport Number", value: identity.serial },
+    { label: "Stack", value: (identity.stack || "Builder").toUpperCase() },
   ];
-  ctx.save();
-  ctx.strokeStyle = "rgba(250,244,228,0.55)";
-  ctx.lineWidth = 1.4;
-  for (const [x, y, dx, dy] of corners) {
+  const colB: FieldRow[] = [
+    { label: "Control Number", value: identity.verificationId },
+    { label: "Visa Type/Class", value: identity.tier.toUpperCase() },
+    { label: "Nationality", value: identity.archetypeCategory.toUpperCase() },
+    { label: "Issue Date", value: identity.arrivalDate.toUpperCase() },
+    {
+      label: "Expiration Date",
+      value: ACCESS_ZONES[ACCESS_ZONES.length - 1].date.toUpperCase(),
+    },
+  ];
+  return { colA, colB };
+}
+
+function drawFieldColumn(ctx: CanvasRenderingContext2D, x: number, rows: FieldRow[]): void {
+  const { y0, rowHeight, labelSize, valueSize, colWidth } = L.fieldGrid;
+  rows.forEach((row, i) => {
+    const y = y0 + i * rowHeight;
+
+    ctx.font = `600 ${labelSize}px ${CANVAS_FONTS.mono}`;
+    ctx.fillStyle = PALETTE.inkFaint;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "alphabetic";
+    fillTextTracked(ctx, row.label.toUpperCase(), x, y + labelSize, 1);
+
+    // Clipped to the column's own width — a long stack string or archetype
+    // name gets cut cleanly rather than overrunning into the next column.
+    ctx.save();
     ctx.beginPath();
-    ctx.moveTo(x, y);
-    ctx.lineTo(x + arm * dx, y);
-    ctx.moveTo(x, y);
-    ctx.lineTo(x, y + arm * dy);
-    ctx.stroke();
-  }
-  ctx.restore();
+    ctx.rect(x, y, colWidth, rowHeight);
+    ctx.clip();
+    ctx.font = `700 ${valueSize}px ${CANVAS_FONTS.mono}`;
+    ctx.fillStyle = PALETTE.ink;
+    ctx.fillText(row.value, x, y + labelSize + valueSize + 4);
+    ctx.restore();
+  });
 }
 
-function drawEdgeMicroprint(ctx: CanvasRenderingContext2D): void {
-  const { inset, fontSize } = L.edgeMicroprint;
-  const label = `${EVENT.motto.toUpperCase()} `;
-  ctx.save();
-  ctx.font = `500 ${fontSize}px ${CANVAS_FONTS.mono}`;
-  ctx.fillStyle = "rgba(250,244,228,0.4)";
-  ctx.textBaseline = "middle";
-
-  ctx.translate(inset, L.photo.height / 2);
-  ctx.rotate(-Math.PI / 2);
-  ctx.fillText(repeatToWidth(ctx, label, L.photo.height * 0.9), -L.photo.height * 0.45, 0);
-  ctx.restore();
-
-  ctx.save();
-  ctx.font = `500 ${fontSize}px ${CANVAS_FONTS.mono}`;
-  ctx.fillStyle = "rgba(250,244,228,0.4)";
-  ctx.textBaseline = "middle";
-  ctx.translate(L.photo.width - inset, L.photo.height / 2);
-  ctx.rotate(Math.PI / 2);
-  ctx.fillText(repeatToWidth(ctx, label, L.photo.height * 0.9), -L.photo.height * 0.45, 0);
-  ctx.restore();
+function drawFieldGrid(ctx: CanvasRenderingContext2D, identity: RenderInput["identity"]): void {
+  const { colAX, colBX } = L.fieldGrid;
+  const { colA, colB } = buildFieldColumns(identity);
+  drawFieldColumn(ctx, colAX, colA);
+  drawFieldColumn(ctx, colBX, colB);
 }
 
-/** A cream scalloped wave lapping at the very bottom edge of the photo —
- * the site's own wave line art, standing in for a plain hairline. */
-function drawWaveDivider(ctx: CanvasRenderingContext2D): void {
-  drawScallopWave(ctx, 0, L.photo.height - 13, L.width, 13, PALETTE.paperRaised);
-}
+/** The one free-text field — the archetype phrase plus the event motto,
+ * in the same italic officialese used on the site's own hero headline. */
+function drawAnnotation(ctx: CanvasRenderingContext2D, identity: RenderInput["identity"]): void {
+  const { x, y, width, height } = L.annotation;
+  const { labelSize } = L.fieldGrid;
 
-function drawStrip(ctx: CanvasRenderingContext2D, identity: RenderInput["identity"]): void {
-  const { x, y, width, height } = L.strip;
-  ctx.fillStyle = PALETTE.ink;
-  ctx.fillRect(x, y, width, height);
-
-  ctx.font = `500 26px ${CANVAS_FONTS.mono}`;
-  ctx.fillStyle = PALETTE.paperRaised;
-  ctx.textBaseline = "middle";
-  ctx.textAlign = "left";
-  ctx.fillText(
-    `${identity.name.toUpperCase()} · ${identity.archetype.toUpperCase()}`,
-    L.margin,
-    y + height / 2,
-  );
-
-  ctx.textAlign = "right";
-  ctx.fillText(
-    `№${identity.serial.split("-")[1]} / RANK ${String(identity.signalRank).padStart(3, "0")}`,
-    L.width - L.margin,
-    y + height / 2,
-  );
-}
-
-function drawMrz(ctx: CanvasRenderingContext2D, identity: RenderInput["identity"]): void {
-  const { x, y, width, height } = L.mrz;
-  ctx.fillStyle = PALETTE.ink;
-  ctx.fillRect(x, y, width, height);
-
-  const [line1, line2] = buildMrzLines(identity);
-  ctx.font = `400 22px ${CANVAS_FONTS.mono}`;
-  ctx.fillStyle = "rgba(250,244,228,0.65)";
-  ctx.textAlign = "left";
-  ctx.textBaseline = "middle";
-  fillTextTracked(ctx, line1, L.margin, y + height * 0.36, 3);
-  fillTextTracked(ctx, line2, L.margin, y + height * 0.72, 3);
-}
-
-/** A faux Code128-style barcode stamped on the photo itself, under the
- * Boarding Pass badge — bar widths/gaps are derived from the
- * verification ID and serial digits (deterministic, not decodable), the
- * same "genuinely built from real fields" spirit as the MRZ text below.
- * Carries its own opaque backing card since, unlike the MRZ band, it
- * sits directly on unpredictable photo content. */
-function drawBarcode(ctx: CanvasRenderingContext2D, identity: RenderInput["identity"]): void {
-  const { x, y, width, height } = L.barcode;
-  const padding = 10;
-
-  ctx.save();
-  const [r, g, b] = hexToRgb(PALETTE.paperRaised);
-  ctx.fillStyle = `rgba(${r},${g},${b},0.92)`;
-  ctx.fillRect(x - padding, y - padding, width + padding * 2, height + padding * 2);
-
-  const barsHeight = height * 0.6;
-  const source = `${identity.verificationId}${identity.serial.replace(/\D/g, "")}`;
-  ctx.fillStyle = PALETTE.ink;
-  let cursor = x;
-  for (let i = 0; i < source.length; i++) {
-    const code = source.charCodeAt(i);
-    const barWidth = 1.5 + (code % 5);
-    const gap = 1.5 + ((code >> 3) % 4);
-    if (cursor + barWidth > x + width) break;
-    ctx.fillRect(cursor, y, barWidth, barsHeight);
-    cursor += barWidth + gap;
-  }
-
-  ctx.font = `500 11px ${CANVAS_FONTS.mono}`;
+  ctx.font = `600 ${labelSize}px ${CANVAS_FONTS.mono}`;
   ctx.fillStyle = PALETTE.inkFaint;
   ctx.textAlign = "left";
   ctx.textBaseline = "alphabetic";
-  ctx.fillText(identity.verificationId, x, y + height - 4);
-  ctx.restore();
-}
+  fillTextTracked(ctx, "ANNOTATION", x, y + labelSize, 1);
 
-function drawPerforation(ctx: CanvasRenderingContext2D): void {
-  const y = L.perforation.y;
   ctx.save();
-  ctx.strokeStyle = PALETTE.lineStrong;
-  ctx.lineWidth = 2;
-  ctx.setLineDash([6, 8]);
   ctx.beginPath();
-  ctx.moveTo(0, y);
-  ctx.lineTo(L.width, y);
-  ctx.stroke();
-  ctx.setLineDash([]);
-
-  ctx.fillStyle = PALETTE.paperRaised;
-  for (const x of [0, L.width]) {
-    ctx.beginPath();
-    ctx.arc(x, y, 10, 0, Math.PI * 2);
-    ctx.fill();
-  }
+  ctx.rect(x, y, width, height);
+  ctx.clip();
+  ctx.font = `italic 500 25px ${CANVAS_FONTS.official}`;
+  ctx.fillStyle = PALETTE.ink;
+  ctx.fillText(`${identity.archetype.toUpperCase()} · ${EVENT.motto.toUpperCase()}`, x, y + height - 6);
   ctx.restore();
 }
 
-function drawMicroBand(ctx: CanvasRenderingContext2D): void {
-  const { x, y, width, height } = L.micro;
-  ctx.fillStyle = PALETTE.paper;
+/** The one highlighted callout — a real visa's own red-boxed visa number,
+ * done here in the brand's stamp pink. Derived from the serial's own
+ * digits and checksum rather than a fourth unrelated random number. */
+function drawVisaNumberBox(ctx: CanvasRenderingContext2D, identity: RenderInput["identity"]): void {
+  const { x, y, width, height } = L.visaNumberBox;
+
+  ctx.save();
+  ctx.fillStyle = PALETTE.paperRaised;
   ctx.fillRect(x, y, width, height);
-  ctx.strokeStyle = PALETTE.line;
+  ctx.strokeStyle = PALETTE.stamp;
+  ctx.lineWidth = 3;
+  ctx.strokeRect(x + 1.5, y + 1.5, width - 3, height - 3);
+
+  ctx.textAlign = "left";
+  ctx.textBaseline = "alphabetic";
+  ctx.font = `600 12px ${CANVAS_FONTS.mono}`;
+  ctx.fillStyle = PALETTE.stamp;
+  fillTextTracked(ctx, "VISA NUMBER", x + 14, y + 22, 1.5);
+
+  const serialDigits = identity.serial.split("-")[1] ?? "0000";
+  ctx.font = `700 27px ${CANVAS_FONTS.mono}`;
+  fillTextTracked(ctx, `V${serialDigits}${identity.checksum}`, x + 14, y + 52, 2);
+  ctx.restore();
+}
+
+/** A chevron security-pattern row above the real MRZ/OCR lines — the same
+ * two visual layers a real US visa's bottom strip carries: a repeating
+ * `<` guilloché-style tiling, then the genuinely-decodable OCR text. */
+function drawFooter(ctx: CanvasRenderingContext2D, identity: RenderInput["identity"]): void {
+  const { height, chevronY, mrzLine1Y, mrzLine2Y } = L.footer;
+  const y = L.footer.y;
+
+  ctx.fillStyle = PALETTE.visaBgDeep;
+  ctx.fillRect(0, y, L.width, height);
+  ctx.strokeStyle = PALETTE.visaLine;
   ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.moveTo(0, y);
   ctx.lineTo(L.width, y);
   ctx.stroke();
 
-  ctx.font = `500 9px ${CANVAS_FONTS.mono}`;
-  ctx.fillStyle = PALETTE.inkFaint;
-  ctx.textBaseline = "middle";
+  ctx.font = `700 15px ${CANVAS_FONTS.mono}`;
+  ctx.fillStyle = PALETTE.visaLine;
   ctx.textAlign = "left";
-  const label = `${EVENT.motto.toUpperCase()} `;
-  ctx.fillText(repeatToWidth(ctx, label, width), L.margin * -0.3, y + height / 2);
-}
+  ctx.textBaseline = "alphabetic";
+  const unit = "<<<< ";
+  const unitWidth = ctx.measureText(unit).width;
+  const rowWidth = L.width - L.margin * 2;
+  ctx.fillText(unit.repeat(Math.ceil(rowWidth / unitWidth) + 1), L.margin, chevronY);
 
-function drawStampSunburst(ctx: CanvasRenderingContext2D): void {
-  const { cx, cy, radius } = L.stamp;
-  drawSunburst(ctx, cx, cy, radius * 0.78, radius * 1.55, 20, PALETTE.gold);
-}
-
-function drawTierStamp(
-  ctx: CanvasRenderingContext2D,
-  identity: RenderInput["identity"],
-  tierColor: string,
-): void {
-  const { cx, cy, radius } = L.stamp;
-  const [r, g, b] = hexToRgb(PALETTE.paperRaised);
-
-  ctx.save();
-  ctx.translate(cx, cy);
-  ctx.rotate((identity.stampRotationDeg * Math.PI) / 180);
-
-  // Fully opaque backing disc — verified by actually rendering this: at
-  // the previous 0.85 alpha, the strip band's own text underneath (which
-  // this stamp's larger radius now overlaps) bled through and garbled
-  // together with the stamp's own text. A "translucent ink" look isn't
-  // worth trading away legibility for.
-  ctx.fillStyle = `rgb(${r},${g},${b})`;
-  ctx.beginPath();
-  ctx.arc(0, 0, radius, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Holographic foil strip, clipped to the disc, near the bottom edge —
-  // below every text line, the one gap verified (by actually rendering
-  // this) to be clear of everything else in the stamp.
-  ctx.save();
-  ctx.beginPath();
-  ctx.arc(0, 0, radius, 0, Math.PI * 2);
-  ctx.clip();
-  const holoGradient = ctx.createLinearGradient(-radius, 0, radius, 0);
-  holoGradient.addColorStop(0, PALETTE.gold);
-  holoGradient.addColorStop(0.5, PALETTE.teal);
-  holoGradient.addColorStop(1, PALETTE.stamp);
-  ctx.globalAlpha = 0.4;
-  ctx.fillStyle = holoGradient;
-  ctx.fillRect(-radius, radius * 0.64, radius * 2, radius * 0.07);
-  ctx.restore();
-
-  ctx.strokeStyle = tierColor;
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  ctx.arc(0, 0, radius - 4, 0, Math.PI * 2);
-  ctx.stroke();
-
-  // Three content lines, generously spaced (verified by actually
-  // rendering this — the first attempt crammed tier/glyph/label/coords
-  // into overlapping text; this is deliberately sparser).
-  ctx.fillStyle = tierColor;
-  ctx.textAlign = "center";
-  ctx.font = `700 ${Math.round(radius * 0.26)}px ${CANVAS_FONTS.display}`;
-  ctx.textBaseline = "middle";
-  ctx.fillText(identity.tier.toUpperCase(), 0, -radius * 0.44);
-
-  drawDepartureGlyph(ctx, 0, 0, radius * 0.22, tierColor);
-  // Deliberately PALETTE.ink, not tierColor — the Alpha tier's color is
-  // gold, which fails text contrast on this same cream backing disc (see
-  // palette.ts), and this line is exactly the small-text case that rule
-  // warns about (verified by actually rendering the Alpha tier: "GATE B
-  // · 09:02 IST" in gold was nearly unreadable). The big tier word above
-  // keeps the pre-existing tierColor treatment — out of scope here.
+  const [line1, line2] = buildMrzLines(identity);
+  ctx.font = `600 24px ${CANVAS_FONTS.mono}`;
   ctx.fillStyle = PALETTE.ink;
-  ctx.font = `500 ${Math.round(radius * 0.095)}px ${CANVAS_FONTS.mono}`;
-  ctx.fillText(`GATE ${identity.accessZoneCode} · ${identity.arrivalTime}`, 0, radius * 0.34);
-
-  ctx.font = `500 ${Math.round(radius * 0.07)}px ${CANVAS_FONTS.mono}`;
-  ctx.fillStyle = PALETTE.inkSoft;
-  ctx.fillText(`15.30°N 74.12°E · ${identity.terminal}`, 0, radius * 0.49);
-
-  ctx.restore();
+  fillTextTracked(ctx, line1, L.margin, mrzLine1Y, 3);
+  fillTextTracked(ctx, line2, L.margin, mrzLine2Y, 3);
 }
 
 function drawGrain(ctx: CanvasRenderingContext2D, seed: number): void {
   ctx.save();
-  ctx.globalAlpha = 0.5;
+  ctx.globalAlpha = 0.22;
   ctx.fillStyle = createGrainPattern(ctx, seed);
   ctx.fillRect(0, 0, L.width, L.height);
   ctx.restore();

@@ -71,9 +71,15 @@ export const SHARE_CAPTIONS: Record<TierId, string> = {
 };
 
 export const CARD = {
-  /** Base render resolution — export is upscaled from this for retina/Twitter. */
-  width: 1080,
-  height: 1512,
+  /**
+   * Base render resolution — export is upscaled from this for
+   * retina/Twitter. Landscape, ~1.54:1 — the visa-card redesign's own
+   * proportions (close to a real US visa sticker's), not the earlier
+   * portrait "passport page" ratio. `pfpSize` is unrelated (a separate
+   * square avatar crop) and stays as-is.
+   */
+  width: 1600,
+  height: 1040,
   pfpSize: 1080,
   /**
    * 2x is the standard "retina" multiplier — sharp on any modern display

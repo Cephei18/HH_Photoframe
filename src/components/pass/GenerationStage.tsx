@@ -120,7 +120,7 @@ export function GenerationStage({ image, values, onStartOver }: GenerationStageP
 
   return (
     <div className="flex w-full flex-col gap-6">
-      <div className="relative aspect-1080/1512 w-full overflow-hidden sm:aspect-auto sm:overflow-visible">
+      <div className="relative aspect-20/13 w-full overflow-hidden sm:aspect-auto sm:overflow-visible">
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-[1fr_auto]">
           {identity ? (
             <>

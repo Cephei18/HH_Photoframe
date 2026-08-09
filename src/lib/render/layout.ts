@@ -1,85 +1,99 @@
 import { CARD } from "@/lib/constants";
 
 /**
- * Logical layout for the tall Builder Pass, in the fixed 1080×1512
- * coordinate space (`CARD.width` × `CARD.height`). Every draw function
- * works in these units; the renderer scales once via `ctx.scale` for
- * preview vs. retina export, so resolution never leaks into layout math.
+ * Logical layout for the Builder Visa, in the fixed 1600×1040 coordinate
+ * space (`CARD.width` × `CARD.height`, a real US-visa-sticker-ish ~1.54:1
+ * landscape ratio). Every draw function works in these units; the
+ * renderer scales once via `ctx.scale` for preview vs. retina export, so
+ * resolution never leaks into layout math.
  *
- * Band stack, top to bottom: full-bleed photo → identity strip → MRZ →
- * perimeter micro-print. The tier stamp is the one element allowed to
- * cross band boundaries (drawn last, on top) — see draw-pass.ts.
+ * Modeled directly on a real US visa's own composition: a two-tone header
+ * band with a seal straddling the seam, a mounted ID photo on the left, a
+ * labeled field grid on the right (with a low-opacity watermark drawing
+ * behind it), a highlighted document-number callout, and an MRZ/OCR strip
+ * along the bottom.
  */
 
 const W = CARD.width;
 const H = CARD.height;
 
-const MICRO_H = 28;
-const MRZ_H = 88;
-const STRIP_H = 60;
-const PHOTO_H = H - MICRO_H - MRZ_H - STRIP_H;
+const HEADER_H = 150;
+const FOOTER_H = 140;
+const BODY_Y = HEADER_H;
 
 export const PASS_LAYOUT = {
   width: W,
   height: H,
-
   margin: 48,
 
-  photo: { x: 0, y: 0, width: W, height: PHOTO_H },
-  strip: { x: 0, y: PHOTO_H, width: W, height: STRIP_H },
-  mrz: { x: 0, y: PHOTO_H + STRIP_H, width: W, height: MRZ_H },
-  micro: { x: 0, y: PHOTO_H + STRIP_H + MRZ_H, width: W, height: MICRO_H },
+  /** Rounded-corner clip applied to the whole card up front — a laminated
+   * ID card's corners, not this brand's usual hard-edged UI chrome (that
+   * rule is a website convention; see globals.css — the canvas pass has
+   * always been its own deliberately-decoupled visual system). */
+  cornerRadius: 28,
 
-  registrationTick: { inset: 20, arm: 22 },
+  header: { height: HEADER_H, accentWidth: 480 },
+  /** The seal straddles the seam between the header's two color blocks,
+   * same composition as the eagle on a real US visa. */
+  emblem: { cx: 480, cy: 75, radius: 56 },
+  accentLabel: { x: 32, y: 108, fontSize: 42 },
+  masthead: {
+    hackerHouseHeight: 64,
+    hackerHouseX: 576,
+    hackerHouseY: 43,
+    goaMarkHeight: 48,
+    studioHeight: 22,
+    inset: 32,
+  },
 
-  // Logos are drawn at their own natural aspect ratio — only the height
-  // is fixed here, width is derived from each bitmap's real dimensions.
-  masthead: { insetTop: 40, insetX: 48, hackerHouseHeight: 34, goaMarkHeight: 46, captionSize: 15 },
-  tierWord: { insetTop: 116, insetX: 44, size: 160 },
+  photo: { x: 48, y: 174, width: 440, height: 560 },
 
-  // Co-centered with `stamp`, and deliberately larger than its diameter
-  // (344px) so a ring of the ghost photo peeks out from behind it once the
-  // stamp is drawn on top — the "photo can't have been swapped" effect,
-  // not a coincidence of two unrelated placements.
-  ghost: { size: 390, cx: 890, cy: 1300, opacity: 0.2 },
-  seal: { cx: 200, cy: 1166, radius: 128 },
-  // Radius sized for four content lines (tier, chosen chain glyph + label,
-  // coordinates, terminal) — see drawTierStamp's fixed offsets, which
-  // assume this exact radius.
-  stamp: { cx: 890, cy: 1300, radius: 172, rotationRangeDeg: [-16, -6] as const },
+  /** Two label/value columns to the right of the photo, five rows each —
+   * see FIELD_ROWS in draw-pass.ts for what actually fills them. */
+  fieldGrid: {
+    colAX: 528,
+    colBX: 1048,
+    colWidth: 480,
+    y0: 174,
+    rowHeight: 96,
+    labelSize: 16,
+    valueSize: 28,
+  },
+  annotation: { x: 528, y: 654, width: 1024, height: 70 },
+  /** The one highlighted callout — a real visa's own red-boxed visa
+   * number, done here in the brand's stamp pink instead of red. */
+  visaNumberBox: { x: 1252, y: 734, width: 300, height: 66 },
 
-  edgeMicroprint: { inset: 9, fontSize: 8 },
-
-  perforation: { y: PHOTO_H },
-
-  /** A small rotated "Boarding Pass" mark under the Goa mark — the one
-   * explicit label on the card that says what this document is. */
-  boardingBadge: { x: W - 48, y: 118, fontSize: 30, rotationDeg: -6 },
+  /** The field grid's own low-opacity background drawing (a real visa's
+   * Capitol-dome watermark, played here by the actual Goa artwork) — kept
+   * deliberately faint (see drawWatermark) so it reads as security-paper
+   * texture, not clutter. */
+  watermark: { x: 528, y: BODY_Y, width: 1024, height: H - BODY_Y - FOOTER_H },
 
   /**
-   * Fixed slots for the chosen visa stamps, hand-placed to sit in the one
-   * open stretch of photo that nothing else claims: below the masthead/
-   * tier word, above the seal/ghost/tier-stamp cluster in the bottom
-   * band, and clear of each other at every radius below. Chosen stamps
-   * fill these in order, so 1 pick reads as a single confident stamp and
-   * 4 reads as a well-traveled passport page.
+   * Fixed slots for the chosen visa stamps, hand-placed across the lower
+   * two-thirds of the photo — clear of the face, allowed to overlap each
+   * other slightly (real passport stamps do too), but kept inside (or
+   * only barely past) the photo's own frame — verified by actually
+   * rendering this: an earlier version let a stamp spill halfway past the
+   * frame border, and the border's stroke sliced visibly through it.
+   * Chosen stamps fill these in pick order, so 1 pick reads as a single
+   * confident stamp and 4 reads as a well-traveled visa page.
    */
   visaStampSlots: [
-    { cx: 760, cy: 460, radius: 92, rotationDeg: -12 },
-    { cx: 930, cy: 620, radius: 80, rotationDeg: 16 },
-    { cx: 620, cy: 680, radius: 74, rotationDeg: -8 },
-    { cx: 860, cy: 850, radius: 66, rotationDeg: 20 },
+    { cx: 150, cy: 650, radius: 68, rotationDeg: -10 },
+    { cx: 300, cy: 690, radius: 60, rotationDeg: 14 },
+    { cx: 410, cy: 600, radius: 55, rotationDeg: -18 },
+    { cx: 190, cy: 540, radius: 48, rotationDeg: 10 },
   ] as const,
 
-  /**
-   * Sits on the photo just under the Boarding Pass badge, NOT in the MRZ
-   * band — the MRZ band's own right-hand stretch looks free on paper, but
-   * the tier stamp/sunburst (radius up to 266, centered at (890,1300)) is
-   * deliberately allowed to cross band boundaries and claims that whole
-   * bottom-right corner (see the tier-stamp comment below), which would
-   * bury a barcode placed there under it.
-   */
-  barcode: { x: 732, y: 150, width: 300, height: 46 },
+  footer: {
+    y: H - FOOTER_H,
+    height: FOOTER_H,
+    chevronY: H - FOOTER_H + 30,
+    mrzLine1Y: H - FOOTER_H + 74,
+    mrzLine2Y: H - FOOTER_H + 108,
+  },
 } as const;
 
 export const PFP_LAYOUT = {

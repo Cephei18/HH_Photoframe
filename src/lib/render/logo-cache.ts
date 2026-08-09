@@ -34,4 +34,7 @@ export const BRAND_LOGOS = {
   hackerHouse: "/brand/hacker-house.png",
   goaMark: "/brand/goa-mark.svg",
   studio: "/brand/247pm-studio.svg",
+  /** A watercolor Goa beach scene — the visa's background watermark motif,
+   * the same role the Capitol dome plays on a real US visa. */
+  goaScene: "/brand/goa-scene.jpg",
 } as const;

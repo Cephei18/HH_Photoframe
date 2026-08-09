@@ -31,6 +31,14 @@ export const PALETTE = {
   signal: "#FF0080",
   alpha: "#FCD900",
   monoSurface: "#ECE1BE",
+
+  /** The visa redesign's own base tones — a very light olive-sage security
+   * paper (not the warmer cream `paper`/`paperRaised` above, which stayed
+   * in place for anything that still leans on the older poster look).
+   * `visaLine` is a step darker, for hairlines against `visaBg`. */
+  visaBg: "#EAEFDD",
+  visaBgDeep: "#DEE6C9",
+  visaLine: "#C7D0AE",
 } as const;
 
 export const TIER_COLOR: Record<TierId, string> = {
