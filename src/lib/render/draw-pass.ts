@@ -171,7 +171,7 @@ function drawHeader(
 }
 
 /** The mounted ID photo — plain and clear, the way an actual visa photo
- * has to be (see clear-photo-cache.ts), in a simple ink-framed box. */
+ * has to be (see clear-photo-cache.ts), rendered edge-to-edge with no frame. */
 function drawPhotoBox(
   ctx: CanvasRenderingContext2D,
   source: HTMLCanvasElement,
@@ -179,9 +179,6 @@ function drawPhotoBox(
 ): void {
   const { x, y, width, height } = L.photo;
   ctx.drawImage(source, crop.x, crop.y, crop.width, crop.height, x, y, width, height);
-  ctx.strokeStyle = PALETTE.ink;
-  ctx.lineWidth = 4;
-  ctx.strokeRect(x + 2, y + 2, width - 4, height - 4);
 }
 
 /** A circular studio credit stamp, always present (not a personalization

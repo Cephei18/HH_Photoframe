@@ -18,7 +18,7 @@ const W = CARD.width;
 const H = CARD.height;
 
 const HEADER_H = 150;
-const FOOTER_H = 140;
+const FOOTER_H = 156;
 const BODY_Y = HEADER_H;
 
 export const PASS_LAYOUT = {
@@ -76,7 +76,7 @@ export const PASS_LAYOUT = {
    * Capitol-dome watermark, played here by the actual Goa artwork) — kept
    * deliberately faint (see drawWatermark) so it reads as security-paper
    * texture, not clutter. */
-  watermark: { x: 528, y: BODY_Y, width: 1024, height: H - BODY_Y - FOOTER_H },
+  watermark: { x: 0, y: BODY_Y, width: W, height: H - BODY_Y - FOOTER_H },
 
   /**
    * Fixed slots for the chosen visa stamps, hand-placed across the lower
@@ -98,9 +98,9 @@ export const PASS_LAYOUT = {
   footer: {
     y: H - FOOTER_H,
     height: FOOTER_H,
-    chevronY: H - FOOTER_H + 30,
-    mrzLine1Y: H - FOOTER_H + 74,
-    mrzLine2Y: H - FOOTER_H + 108,
+    chevronY: H - FOOTER_H + 28,
+    mrzLine1Y: H - FOOTER_H + 76,
+    mrzLine2Y: H - FOOTER_H + 118,
   },
 } as const;
 

@@ -1,36 +1,72 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# The Signal Pass
 
-## Getting Started
+A builder credential generator for **Hacker House Goa 2026**. Upload a photo, add your name and stack, and get back a stamped, visa-style pass card — complete with a tier (Noise / Signal / Alpha), a deterministic archetype, an MRZ strip, chain stamps, and a duotone portrait — ready to download or share.
 
-First, run the development server:
+## How it works
+
+1. **Upload** — drop or select a photo (HEIC is converted client-side); it's auto-cropped and compressed.
+2. **Details** — enter a name, stack, up to four chain/stack stamps, and a domain.
+3. **Generate** — a single seed (`name + stack + photo`) deterministically derives your tier, signal rank, archetype, and serial number, then the card is rendered to canvas.
+4. **Download / Share** — export a retina PNG or share it directly via the Web Share API / X intent.
+
+Everything about the event, tiers, access zones, and share copy lives in one place: [src/lib/constants.ts](src/lib/constants.ts).
+
+## Tech stack
+
+- [Next.js 16](node_modules/next/dist/docs) (App Router) + React 19 + TypeScript
+- Tailwind CSS v4
+- Canvas-based rendering for the pass artwork (no server-side image generation)
+- Vitest for unit tests
+- ESLint + Prettier
+
+> **Note:** this repo pins a Next.js version with breaking changes from the version most tooling/training data expects. Before touching Next.js APIs, read the docs bundled at `node_modules/next/dist/docs/`.
+
+## Getting started
+
+Requires Node.js >= 20.18.0.
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Command                | Description                        |
+| ----------------------- | ----------------------------------- |
+| `npm run dev`           | Start the dev server                |
+| `npm run build`         | Production build                    |
+| `npm run start`         | Run the production build            |
+| `npm run lint`          | Lint with ESLint                    |
+| `npm run format`        | Format with Prettier                |
+| `npm run format:check`  | Check formatting without writing    |
+| `npm run typecheck`     | Type-check with `tsc --noEmit`      |
+| `npm test`              | Run unit tests with Vitest          |
 
-## Learn More
+## Project structure
 
-To learn more about Next.js, take a look at the following resources:
+```
+src/
+  app/                  # Next.js App Router entry (page, layout, OG image)
+  components/
+    pass/               # Pass canvas, identity form, generation stage, download/share bar
+    upload/             # Photo upload dropzone, preview, stage
+    ui/                 # Shared UI primitives (button, input, label)
+  hooks/                # Upload, canvas render, export, and share hooks
+  lib/
+    identity/           # Deterministic identity generation (tier, archetype, serial, checksum)
+    image/              # Decode, HEIC conversion, autocrop, face detection, compression
+    render/              # Canvas drawing: layout, duotone, MRZ, palette, textures, export
+    constants.ts        # Single source of truth for event/brand data
+    share.ts            # Share text + Web Share / X intent helpers
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Testing
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Unit tests live alongside their source files (`*.test.ts`) and cover the identity generation, autocrop, MRZ formatting, palette, and share logic:
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npm test
+```
