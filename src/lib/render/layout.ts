@@ -32,8 +32,10 @@ export const PASS_LAYOUT = {
 
   registrationTick: { inset: 20, arm: 22 },
 
-  masthead: { insetTop: 44, insetX: 48, nameSize: 20, markSize: 30 },
-  tierWord: { insetTop: 108, insetX: 44, size: 168 },
+  // Logos are drawn at their own natural aspect ratio — only the height
+  // is fixed here, width is derived from each bitmap's real dimensions.
+  masthead: { insetTop: 40, insetX: 48, hackerHouseHeight: 34, goaMarkHeight: 46, captionSize: 15 },
+  tierWord: { insetTop: 116, insetX: 44, size: 160 },
 
   // Co-centered with `stamp`, and deliberately larger than its diameter
   // (344px) so a ring of the ghost photo peeks out from behind it once the

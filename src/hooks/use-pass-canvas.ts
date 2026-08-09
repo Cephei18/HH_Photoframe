@@ -48,7 +48,9 @@ export function usePassCanvas(
       () => {
         if (!cancelled) setStatus("ready");
       },
-      () => {
+      (err: unknown) => {
+        const detail = err instanceof Error ? `${err.name}: ${err.message}` : JSON.stringify(err);
+        console.error("renderToCanvas failed:", detail);
         if (!cancelled) setStatus("error");
       },
     );

@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { SignalPassExperience } from "@/components/SignalPassExperience";
 import { EVENT, ORGANIZER } from "@/lib/constants";
 
@@ -6,9 +7,14 @@ export default function Home() {
     <div className="bg-paper flex flex-1 flex-col">
       <header className="border-line border-b px-5 py-5 sm:px-8">
         <div className="mx-auto flex max-w-xl items-start justify-between gap-4">
-          <p className="text-stamp font-mono text-[11px] tracking-[0.14em] uppercase">
-            Hacker House Goa · {EVENT.year}
-          </p>
+          <Image
+            src="/brand/hacker-house.png"
+            alt="Hacker House"
+            width={1148}
+            height={237}
+            priority
+            className="h-8 w-auto sm:h-9"
+          />
           <div className="border-line-strong text-ink-soft flex h-14 w-14 shrink-0 -rotate-[9deg] items-center justify-center rounded-full border text-center font-mono text-[8px] leading-tight">
             <span>
               <b className="text-stamp block text-[9px] tracking-wide">HH·GOA</b>
@@ -44,7 +50,11 @@ export default function Home() {
             <span>{EVENT.hashtag}</span>
           </div>
           <div className="text-ink-faint flex flex-wrap items-center gap-3 font-mono text-[11px] uppercase">
-            <span>Powered by {ORGANIZER.name}</span>
+            <span className="flex items-center gap-1.5">
+              Powered by
+              {/* eslint-disable-next-line @next/next/no-img-element -- a small static SVG credit mark, no optimization needed */}
+              <img src="/brand/247pm-studio.svg" alt={ORGANIZER.name} className="h-4 w-auto" />
+            </span>
             <a
               href={ORGANIZER.x}
               target="_blank"

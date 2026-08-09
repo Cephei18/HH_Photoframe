@@ -5,6 +5,7 @@ import { getDuotonePhoto } from "./duotone-cache";
 import { CANVAS_FONTS } from "./font-refs";
 import { drawGuilloche } from "./guilloche";
 import { PASS_LAYOUT } from "./layout";
+import { BRAND_LOGOS, loadLogo } from "./logo-cache";
 import { buildMrzLines } from "./mrz";
 import { hexToRgb, PALETTE, TIER_COLOR } from "./palette";
 import { drawScallopWave, drawSunburst } from "./retro-motifs";
@@ -26,7 +27,14 @@ export async function drawPass(ctx: CanvasRenderingContext2D, input: RenderInput
   ctx.fillStyle = PALETTE.paperRaised;
   ctx.fillRect(0, 0, L.width, L.height);
 
-  const photo = await getDuotonePhoto(image.dataUrl);
+  // Logos load in parallel with the (slower) photo processing — loading
+  // them serially afterward would just add their fetch/decode time on top
+  // for no reason.
+  const [photo, hackerHouseLogo, goaMarkLogo] = await Promise.all([
+    getDuotonePhoto(image.dataUrl),
+    loadLogo(BRAND_LOGOS.hackerHouse),
+    loadLogo(BRAND_LOGOS.goaMark),
+  ]);
   const crop = computeAutoCrop(
     photo.width,
     photo.height,
@@ -49,7 +57,7 @@ export async function drawPass(ctx: CanvasRenderingContext2D, input: RenderInput
     tierColor,
     CANVAS_FONTS.display,
   );
-  drawMasthead(ctx);
+  drawMasthead(ctx, hackerHouseLogo, goaMarkLogo);
   drawTierWord(ctx, identity.tier, tierColor);
   drawRegistrationTicks(ctx);
   drawEdgeMicroprint(ctx);
@@ -169,27 +177,37 @@ function drawGhost(
   ctx.restore();
 }
 
-function drawMasthead(ctx: CanvasRenderingContext2D): void {
-  const { insetTop, insetX, nameSize, markSize } = L.masthead;
+/** The two official marks, drawn as the real logo assets (public/brand/,
+ * copied verbatim from reference/) rather than a typeset reconstruction —
+ * every previous version of this function approximated them with canvas
+ * text. Each is drawn at its own natural aspect ratio, only height fixed. */
+function drawMasthead(
+  ctx: CanvasRenderingContext2D,
+  hackerHouseLogo: HTMLImageElement,
+  goaMarkLogo: HTMLImageElement,
+): void {
+  const { insetTop, insetX, hackerHouseHeight, goaMarkHeight, captionSize } = L.masthead;
   ctx.save();
-  ctx.fillStyle = PALETTE.paperRaised;
-  ctx.font = `500 ${nameSize}px ${CANVAS_FONTS.mono}`;
-  ctx.textBaseline = "top";
-  fillTextTracked(ctx, `${EVENT.name.toUpperCase()} · ${EVENT.year}`, insetX, insetTop, 2);
 
-  // Devanagari mark — yellow fill over a pink outline stroke, the same
-  // sticker treatment as HH Goa's own गोवा mark (reference/goa_hindi.svg).
-  ctx.font = `italic 400 ${markSize}px ${CANVAS_FONTS.body}`;
-  ctx.textAlign = "right";
-  ctx.textBaseline = "alphabetic";
-  const markX = L.width - insetX;
-  const markY = insetTop + markSize * 0.82;
-  ctx.lineWidth = markSize * 0.1;
-  ctx.lineJoin = "round";
-  ctx.strokeStyle = PALETTE.stamp;
-  ctx.strokeText(EVENT.devanagariMark, markX, markY);
-  ctx.fillStyle = PALETTE.gold;
-  ctx.fillText(EVENT.devanagariMark, markX, markY);
+  const hhWidth =
+    hackerHouseHeight * (hackerHouseLogo.naturalWidth / hackerHouseLogo.naturalHeight);
+  ctx.drawImage(hackerHouseLogo, insetX, insetTop, hhWidth, hackerHouseHeight);
+
+  ctx.fillStyle = PALETTE.paperRaised;
+  ctx.font = `500 ${captionSize}px ${CANVAS_FONTS.mono}`;
+  ctx.textAlign = "left";
+  ctx.textBaseline = "top";
+  fillTextTracked(
+    ctx,
+    `${EVENT.name.toUpperCase()} · ${EVENT.year}`,
+    insetX,
+    insetTop + hackerHouseHeight + 8,
+    2,
+  );
+
+  const markWidth = goaMarkHeight * (goaMarkLogo.naturalWidth / goaMarkLogo.naturalHeight);
+  ctx.drawImage(goaMarkLogo, L.width - insetX - markWidth, insetTop - 6, markWidth, goaMarkHeight);
+
   ctx.restore();
 }
 
