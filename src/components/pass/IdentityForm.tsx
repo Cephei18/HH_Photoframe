@@ -5,26 +5,35 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CHAIN_STAMPS, MAX_CHAIN_STAMPS, type ChainStampId } from "@/lib/constants";
+import { DOMAIN_OPTIONS, type ArchetypeCategory } from "@/lib/identity/banks";
 import { cn } from "@/lib/utils";
 import { ChainStampIcon } from "./ChainStampIcon";
 
 type IdentityFormProps = {
-  onSubmit: (values: { name: string; stack: string; chainStamps: ChainStampId[] }) => void;
+  onSubmit: (values: {
+    name: string;
+    stack: string;
+    chainStamps: ChainStampId[];
+    domain: ArchetypeCategory;
+  }) => void;
   submitting?: boolean;
 };
 
 /**
- * The only form in the product — two fields plus a stamp-flavor picker, on
- * the same screen as the photo, per the approved mobile-first flow. Stack
- * is optional; the chain stamp defaults to Ethereum so a one-tap Generate
- * still works for anyone in a hurry — it's a fun customization, not a
- * gate. Up to MAX_CHAIN_STAMPS can be picked, each landing in its own
- * visa-stamp slot on the pass — a real passport page carries more than
- * one stamp, and one flavor never felt like enough.
+ * The only form in the product — two fields plus a domain picker and a
+ * stamp-flavor picker, on the same screen as the photo, per the approved
+ * mobile-first flow. Stack is optional (free-text flavor only, e.g.
+ * "React, Solidity"); domain drives the actual "Nationality"/archetype
+ * category and defaults to Generic, and the chain stamp defaults to
+ * Ethereum — a one-tap Generate still works for anyone in a hurry. Up to
+ * MAX_CHAIN_STAMPS can be picked, each landing in its own visa-stamp slot
+ * on the pass — a real passport page carries more than one stamp, and one
+ * flavor never felt like enough.
  */
 export function IdentityForm({ onSubmit, submitting }: IdentityFormProps) {
   const [name, setName] = useState("");
   const [stack, setStack] = useState("");
+  const [domain, setDomain] = useState<ArchetypeCategory>("generic");
   const [chainStamps, setChainStamps] = useState<ChainStampId[]>(["ethereum"]);
 
   function toggleStamp(id: ChainStampId) {
@@ -42,7 +51,7 @@ export function IdentityForm({ onSubmit, submitting }: IdentityFormProps) {
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!name.trim()) return;
-    onSubmit({ name: name.trim(), stack: stack.trim(), chainStamps });
+    onSubmit({ name: name.trim(), stack: stack.trim(), chainStamps, domain });
   }
 
   return (
@@ -81,6 +90,36 @@ export function IdentityForm({ onSubmit, submitting }: IdentityFormProps) {
           className="h-11 font-mono"
         />
       </div>
+
+      <fieldset className="flex flex-col gap-1.5">
+        <legend className="text-ink-soft font-mono text-xs tracking-wide uppercase">Domain</legend>
+        <div
+          className="grid grid-cols-4 gap-2"
+          role="radiogroup"
+          aria-label="Domain / nationality"
+        >
+          {DOMAIN_OPTIONS.map((option) => {
+            const selected = domain === option.id;
+            return (
+              <button
+                key={option.id}
+                type="button"
+                role="radio"
+                aria-checked={selected}
+                onClick={() => setDomain(option.id)}
+                className={cn(
+                  "border py-2.5 font-mono text-[10px] uppercase transition-colors",
+                  selected
+                    ? "border-ink bg-gold text-ink"
+                    : "border-line-strong bg-paper-raised text-ink-soft hover:border-ink",
+                )}
+              >
+                {option.label}
+              </button>
+            );
+          })}
+        </div>
+      </fieldset>
 
       <fieldset className="flex flex-col gap-1.5">
         <legend className="text-ink-soft font-mono text-xs tracking-wide uppercase">

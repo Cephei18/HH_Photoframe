@@ -4,6 +4,7 @@ import { buildMrzLines } from "./mrz";
 
 const samplePhoto = "data:image/jpeg;base64,AAAABBBBCCCC";
 const chainStamps = ["ethereum" as const];
+const domain = "generic" as const;
 
 describe("buildMrzLines", () => {
   it("produces two fixed-length, MRZ-alphabet-only lines", () => {
@@ -12,6 +13,7 @@ describe("buildMrzLines", () => {
       stack: "React",
       photoDataUrl: samplePhoto,
       chainStamps,
+      domain,
     });
     const [line1, line2] = buildMrzLines(identity);
     expect(line1).toHaveLength(36);
@@ -26,6 +28,7 @@ describe("buildMrzLines", () => {
       stack: "React",
       photoDataUrl: samplePhoto,
       chainStamps,
+      domain,
     });
     const [line1] = buildMrzLines(identity);
     expect(line1).toContain("KAY<VERMA");
@@ -38,6 +41,7 @@ describe("buildMrzLines", () => {
       stack: "Go",
       photoDataUrl: samplePhoto,
       chainStamps,
+      domain,
     });
     const [, line2] = buildMrzLines(identity);
     const serialDigits = identity.serial.split("-")[1];
@@ -50,6 +54,7 @@ describe("buildMrzLines", () => {
       stack: "C++",
       photoDataUrl: samplePhoto,
       chainStamps,
+      domain,
     });
     const [line1] = buildMrzLines(identity);
     expect(line1).toMatch(/^[A-Z0-9<]{36}$/);
@@ -61,6 +66,7 @@ describe("buildMrzLines", () => {
       stack: "Rust",
       photoDataUrl: samplePhoto,
       chainStamps,
+      domain,
     });
     expect(buildMrzLines(identity)).toEqual(buildMrzLines(identity));
   });

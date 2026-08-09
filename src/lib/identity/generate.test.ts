@@ -4,7 +4,7 @@ import { computeChecksum } from "./checksum";
 import { generateIdentity } from "./generate";
 
 const samplePhoto = "data:image/jpeg;base64,AAAABBBBCCCC";
-const base = { chainStamps: ["ethereum" as const] };
+const base = { chainStamps: ["ethereum" as const], domain: "generic" as const };
 
 describe("generateIdentity", () => {
   it("is deterministic — same inputs always produce the same identity", () => {
@@ -35,7 +35,7 @@ describe("generateIdentity", () => {
   });
 
   it("carries the chosen chain stamps through untouched, without affecting the seed", () => {
-    const baseArgs = { name: "Kay", stack: "React", photoDataUrl: samplePhoto };
+    const baseArgs = { name: "Kay", stack: "React", domain: "generic" as const, photoDataUrl: samplePhoto };
     const ethereum = generateIdentity({ ...baseArgs, chainStamps: ["ethereum"] });
     const solana = generateIdentity({ ...baseArgs, chainStamps: ["solana", "rust"] });
     expect(ethereum.chainStamps).toEqual(["ethereum"]);
@@ -51,6 +51,7 @@ describe("generateIdentity", () => {
     const identity = generateIdentity({
       name: "Kay",
       stack: "React",
+      domain: "generic",
       photoDataUrl: samplePhoto,
       chainStamps: ["ethereum", "ethereum", "solana", "bitcoin", "ai", "rust"],
     });
@@ -96,21 +97,15 @@ describe("generateIdentity", () => {
     expect(identity.stampRotationDeg).toBeLessThanOrEqual(-6);
   });
 
-  it("falls back to the generic archetype bank for an unrecognized stack", () => {
+  it("uses the explicitly chosen domain as the archetype category, regardless of stack text", () => {
+    // Domain is a picked field (see DOMAIN_OPTIONS), not guessed from
+    // `stack` — a stack string that would once have matched a different
+    // category by keyword must not override the person's own choice.
     const identity = generateIdentity({
-      ...base,
       name: "Kay",
-      stack: "underwater basket weaving",
-      photoDataUrl: samplePhoto,
-    });
-    expect(identity.archetypeCategory).toBe("generic");
-  });
-
-  it("matches a recognizable stack to its flavor category", () => {
-    const identity = generateIdentity({
-      ...base,
-      name: "Kay",
-      stack: "Solidity + Foundry",
+      stack: "React, Solidity",
+      domain: "crypto",
+      chainStamps: ["ethereum"],
       photoDataUrl: samplePhoto,
     });
     expect(identity.archetypeCategory).toBe("crypto");

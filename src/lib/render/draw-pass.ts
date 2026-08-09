@@ -1,4 +1,4 @@
-import { ACCESS_ZONES, CHAIN_STAMPS, EVENT, type ChainStampId } from "@/lib/constants";
+import { CHAIN_STAMPS, EVENT, type ChainStampId } from "@/lib/constants";
 import { computeAutoCrop } from "@/lib/image/autocrop";
 import { mulberry32 } from "@/lib/identity/hash";
 import { getClearPhoto } from "./clear-photo-cache";
@@ -54,16 +54,10 @@ export async function drawPass(ctx: CanvasRenderingContext2D, input: RenderInput
   ctx.fillRect(0, 0, L.width, L.height);
 
   drawWatermark(ctx, sceneArt);
-  drawHeader(
-    ctx,
-    hackerHouseLogo,
-    goaMarkLogo,
-    studioLogo,
-    sealColorFor(identity.tier, tierColor),
-    identity.sealVariation,
-  );
+  drawHeader(ctx, hackerHouseLogo, goaMarkLogo, sealColorFor(identity.tier, tierColor), identity.sealVariation);
   drawPhotoBox(ctx, photo.canvas, crop);
   drawVisaStamps(ctx, identity);
+  drawStudioStamp(ctx, L.studioStamp.cx, L.studioStamp.cy, L.studioStamp.radius, studioLogo);
   drawFieldGrid(ctx, identity);
   drawAnnotation(ctx, identity);
   drawVisaNumberBox(ctx, identity);
@@ -136,14 +130,16 @@ function sealColorFor(tier: RenderInput["identity"]["tier"], tierColor: string):
 }
 
 /** The two-tone header — a flamingo accent block carrying "HH VISA," a
- * jungle-green main block carrying the three official marks, and a
+ * jungle-green main block carrying the Hacker House + Goa marks, and a
  * guilloché seal straddling the seam between them. Same composition as a
- * real US visa's blue "VISA" block + red country-name block + eagle. */
+ * real US visa's blue "VISA" block + red country-name block + eagle. The
+ * 2:47PM Studio credit lives below the photo instead (see
+ * drawStudioStamp) — a proper circular stamp of its own, not a fourth
+ * logo squeezed into an already-full 150px header. */
 function drawHeader(
   ctx: CanvasRenderingContext2D,
   hackerHouseLogo: HTMLImageElement,
   goaMarkLogo: HTMLImageElement,
-  studioLogo: HTMLImageElement,
   sealColor: string,
   sealVariation: number,
 ): void {
@@ -162,22 +158,12 @@ function drawHeader(
   ctx.fillText("HH VISA", L.accentLabel.x, L.accentLabel.y);
   ctx.restore();
 
-  const { hackerHouseHeight, hackerHouseX, hackerHouseY, goaMarkHeight, studioHeight, inset } =
-    L.masthead;
+  const { hackerHouseHeight, hackerHouseX, hackerHouseY, goaMarkHeight, inset } = L.masthead;
   const hhWidth = hackerHouseHeight * (hackerHouseLogo.naturalWidth / hackerHouseLogo.naturalHeight);
   ctx.drawImage(hackerHouseLogo, hackerHouseX, hackerHouseY, hhWidth, hackerHouseHeight);
 
   const goaWidth = goaMarkHeight * (goaMarkLogo.naturalWidth / goaMarkLogo.naturalHeight);
   ctx.drawImage(goaMarkLogo, L.width - inset - goaWidth, 14, goaWidth, goaMarkHeight);
-
-  const studioWidth = studioHeight * (studioLogo.naturalWidth / studioLogo.naturalHeight);
-  ctx.drawImage(
-    studioLogo,
-    L.width - inset - studioWidth,
-    height - studioHeight - 14,
-    studioWidth,
-    studioHeight,
-  );
 
   const { cx, cy, radius } = L.emblem;
   const [r, g, b] = hexToRgb(PALETTE.paperRaised);
@@ -209,6 +195,54 @@ function drawPhotoBox(
   ctx.strokeStyle = PALETTE.ink;
   ctx.lineWidth = 4;
   ctx.strokeRect(x + 2, y + 2, width - 4, height - 4);
+}
+
+/** A circular studio credit stamp, always present (not a personalization
+ * choice), filling the dead space between the photo's bottom edge and the
+ * footer. Same ring/tick visual language as the visa stamps, but holding
+ * the actual 2:47PM Studio logo image instead of a glyph + label. */
+function drawStudioStamp(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  radius: number,
+  logo: HTMLImageElement,
+): void {
+  ctx.save();
+  ctx.translate(cx, cy);
+
+  const [r, g, b] = hexToRgb(PALETTE.paperRaised);
+  ctx.fillStyle = `rgb(${r},${g},${b})`;
+  ctx.beginPath();
+  ctx.arc(0, 0, radius, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.strokeStyle = PALETTE.ink;
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.arc(0, 0, radius, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.arc(0, 0, radius - 8, 0, Math.PI * 2);
+  ctx.stroke();
+
+  for (let i = 0; i < 24; i++) {
+    const angle = (i / 24) * Math.PI * 2;
+    ctx.beginPath();
+    ctx.moveTo(Math.cos(angle) * (radius - 8), Math.sin(angle) * (radius - 8));
+    ctx.lineTo(Math.cos(angle) * (radius - 3), Math.sin(angle) * (radius - 3));
+    ctx.stroke();
+  }
+
+  // 0.92 is tuned for this specific logo's ~1.63:1 aspect ratio — checked
+  // against sqrt((w/2)²+(h/2)²) staying under radius-8 so it clears the
+  // tick ring, not a fraction that'd generalize to an arbitrarily wide mark.
+  const logoHeight = (radius - 8) * 0.92;
+  const logoWidth = logoHeight * (logo.naturalWidth / logo.naturalHeight);
+  ctx.drawImage(logo, -logoWidth / 2, -logoHeight / 2, logoWidth, logoHeight);
+
+  ctx.restore();
 }
 
 /** One ink stamp per chosen stack/chain flavor, filling PASS_LAYOUT's
@@ -332,10 +366,12 @@ function buildFieldColumns(identity: RenderInput["identity"]): { colA: FieldRow[
     { label: "Visa Type/Class", value: identity.tier.toUpperCase() },
     { label: "Nationality", value: identity.archetypeCategory.toUpperCase() },
     { label: "Issue Date", value: identity.arrivalDate.toUpperCase() },
-    {
-      label: "Expiration Date",
-      value: ACCESS_ZONES[ACCESS_ZONES.length - 1].date.toUpperCase(),
-    },
+    // Not a real single expiration day — every identity's own arrival day
+    // already sits somewhere in this same four-day window, so a second,
+    // separately-computed single date read as a near-duplicate of Issue
+    // Date (verified by actually looking at rendered cards side by side).
+    // The event's own full date range is more useful here anyway.
+    { label: "Event Dates", value: EVENT.dateRange.toUpperCase() },
   ];
   return { colA, colB };
 }

@@ -12,6 +12,10 @@ export type GenerateIdentityInput = {
    * this one) always produce the same identity. Non-empty, order preserved
    * (order is what assigns each stamp to a visa-stamp slot on the pass). */
   chainStamps: ChainStampId[];
+  /** User-chosen — see DOMAIN_OPTIONS. Directly becomes `archetypeCategory`
+   * (which trait/role bank the archetype phrase draws from and what shows
+   * in the "Nationality" field), rather than being guessed from `stack`. */
+  domain: ArchetypeCategory;
 };
 
 export type BuilderIdentity = {

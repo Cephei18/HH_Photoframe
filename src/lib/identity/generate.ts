@@ -1,5 +1,5 @@
 import { ACCESS_ZONES, EVENT, MAX_CHAIN_STAMPS, TERMINALS, TIERS } from "@/lib/constants";
-import { ARCHETYPE_BANKS, categoryFromStack } from "./banks";
+import { ARCHETYPE_BANKS } from "./banks";
 import { computeChecksum } from "./checksum";
 import { fnv1a, mulberry32, pickIndex, pickWeightedIndex } from "./hash";
 import type { BuilderIdentity, GenerateIdentityInput } from "./types";
@@ -37,9 +37,13 @@ export function generateIdentity(input: GenerateIdentityInput): BuilderIdentity 
   // 2. Signal Rank — the single confident number, 0-999.
   const signalRank = Math.floor(next() * 1000);
 
-  // 3-4. Archetype — category from the stack (deterministic keyword match,
-  // not a draw), then trait + role drawn from that category's bank.
-  const archetypeCategory = categoryFromStack(stack);
+  // 3-4. Archetype — category is the person's own chosen domain (see
+  // DOMAIN_OPTIONS), not a draw and not folded into the seed for the same
+  // reason chainStamps isn't: it's a personalization choice, and reading
+  // it here consumes nothing from `next`, so choosing a different domain
+  // can't shift any later field either. Trait + role are drawn from that
+  // domain's bank.
+  const archetypeCategory = input.domain;
   const bank = ARCHETYPE_BANKS[archetypeCategory];
   const trait = bank.traits[pickIndex(next, bank.traits.length)];
   const role = bank.roles[pickIndex(next, bank.roles.length)];

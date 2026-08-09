@@ -44,61 +44,24 @@ export const ARCHETYPE_BANKS = {
 
 export type ArchetypeCategory = keyof typeof ARCHETYPE_BANKS;
 
-const CATEGORY_KEYWORDS: Record<Exclude<ArchetypeCategory, "generic">, readonly string[]> = {
-  frontend: ["react", "vue", "svelte", "next", "frontend", "css", "tailwind", "angular", "html"],
-  backend: [
-    "node",
-    "express",
-    "django",
-    "rails",
-    "backend",
-    "api",
-    "golang",
-    "go",
-    "java",
-    "spring",
-    "postgres",
-    "sql",
-    "database",
-    "php",
-  ],
-  crypto: [
-    "solidity",
-    "web3",
-    "ethereum",
-    "evm",
-    "solana",
-    "rust",
-    "move",
-    "chain",
-    "contract",
-    "defi",
-    "nft",
-    "anchor",
-  ],
-  ai: [
-    "python",
-    "pytorch",
-    "tensorflow",
-    "llm",
-    "ml",
-    "ai",
-    "model",
-    "transformer",
-    "gpt",
-    "langchain",
-  ],
-  design: ["figma", "design", "product", "ux", "ui"],
-  infra: ["docker", "kubernetes", "k8s", "aws", "devops", "infra", "terraform", "cloud", "gcp"],
-};
-
-/** Matches a free-text stack string to a flavor category by substring —
- * deterministic, no external NLP. Falls back to `generic`. */
-export function categoryFromStack(stack: string): ArchetypeCategory {
-  const lower = stack.toLowerCase();
-  const matches = (Object.keys(CATEGORY_KEYWORDS) as (keyof typeof CATEGORY_KEYWORDS)[]).filter(
-    (category) => CATEGORY_KEYWORDS[category].some((keyword) => lower.includes(keyword)),
-  );
-  if (matches.length === 0) return "generic";
-  return matches[0];
-}
+/**
+ * The Domain picker's own options (IdentityForm) — a person states their
+ * domain directly rather than it being guessed from free-text `stack`
+ * keywords. An earlier version matched `stack` substrings against a
+ * keyword list per category and took the first category with any match;
+ * since `Object.keys` iterates in insertion order, a stack that matched
+ * more than one category (e.g. "React, Solidity" hitting both `frontend`
+ * and `crypto`) always silently lost to whichever category happened to
+ * be listed first, regardless of which keyword was actually the
+ * stronger signal — verified by actually trying it. Explicit beats
+ * guessed here.
+ */
+export const DOMAIN_OPTIONS: ReadonlyArray<{ id: ArchetypeCategory; label: string }> = [
+  { id: "frontend", label: "Frontend" },
+  { id: "backend", label: "Backend" },
+  { id: "crypto", label: "Blockchain" },
+  { id: "ai", label: "AI" },
+  { id: "design", label: "Design" },
+  { id: "infra", label: "Cloud" },
+  { id: "generic", label: "Generic" },
+];

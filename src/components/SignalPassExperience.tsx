@@ -6,6 +6,7 @@ import { IdentityForm } from "@/components/pass/IdentityForm";
 import { UploadStage } from "@/components/upload/UploadStage";
 import { useImageUpload } from "@/hooks/use-image-upload";
 import type { ChainStampId } from "@/lib/constants";
+import type { ArchetypeCategory } from "@/lib/identity/banks";
 
 /**
  * The whole product, end to end. Stage is derived from upload state +
@@ -20,6 +21,7 @@ export function SignalPassExperience() {
     name: string;
     stack: string;
     chainStamps: ChainStampId[];
+    domain: ArchetypeCategory;
   } | null>(null);
 
   const stage = !image ? "upload" : !pendingValues ? "details" : "generating";

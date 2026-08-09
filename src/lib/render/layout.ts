@@ -42,11 +42,19 @@ export const PASS_LAYOUT = {
     hackerHouseX: 576,
     hackerHouseY: 43,
     goaMarkHeight: 48,
-    studioHeight: 22,
     inset: 32,
   },
 
   photo: { x: 48, y: 174, width: 440, height: 560 },
+
+  /**
+   * A circular 2:47PM Studio stamp, sized to fill the one dead stretch
+   * this layout otherwise leaves behind: the gap between the photo's
+   * bottom edge (174 + 560 = 734) and the footer (900). Same ring/tick
+   * visual language as the visa stamps above, but always present — the
+   * studio's own credit, not a personalization choice.
+   */
+  studioStamp: { cx: 268, cy: 817, radius: 60 },
 
   /** Two label/value columns to the right of the photo, five rows each —
    * see FIELD_ROWS in draw-pass.ts for what actually fills them. */

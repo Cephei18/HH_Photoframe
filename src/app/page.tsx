@@ -25,7 +25,7 @@ export default function Home() {
       <Ticker />
 
       <header className="border-line border-b px-5 py-5 sm:px-8">
-        <div className="mx-auto flex max-w-xl flex-col gap-4">
+        <div className="mx-auto flex max-w-xl flex-col gap-4 lg:max-w-3xl xl:max-w-4xl">
           <div className="flex items-start justify-between gap-4">
             <Image
               src="/brand/hacker-house.png"
@@ -57,13 +57,13 @@ export default function Home() {
       </header>
 
       <main className="flex flex-1 flex-col items-center px-5 py-16 sm:px-8">
-        <div className="mx-auto flex w-full max-w-2xl flex-col items-start gap-6">
+        <div className="mx-auto flex w-full max-w-2xl flex-col items-start gap-6 lg:max-w-4xl xl:max-w-6xl">
           <div className="text-ink-soft flex items-center gap-2 font-mono text-[11px] tracking-[0.2em] uppercase">
             <span className="bg-stamp inline-block h-1.5 w-1.5 animate-pulse rounded-full" />
             Boarding pass &middot; Terminal HH
           </div>
 
-          <h1 className="font-official text-ink text-6xl leading-[0.95] tracking-tight sm:text-7xl">
+          <h1 className="font-official text-ink text-6xl leading-[0.95] tracking-tight sm:text-7xl lg:text-8xl">
             Hacker House
             <br />
             <span className="text-stamp inline-flex items-center gap-3 italic">
@@ -108,7 +108,7 @@ export default function Home() {
       <div className="bg-hazard h-2 w-full" />
 
       <footer className="border-line border-t px-5 py-5 sm:px-8">
-        <div className="mx-auto flex max-w-xl flex-col gap-3">
+        <div className="mx-auto flex max-w-xl flex-col gap-3 lg:max-w-3xl xl:max-w-4xl">
           <div className="text-ink-faint flex flex-wrap justify-between gap-2 font-mono text-[11px]">
             <span className="text-stamp uppercase">{EVENT.motto}</span>
             <span>{EVENT.coordinatesLabel}</span>

@@ -6,14 +6,16 @@ import type { BuilderIdentity } from "@/lib/identity/types";
 import { STEP_META, type CeremonyStep } from "@/lib/ceremony/steps";
 import { waitFrames } from "@/lib/ceremony/wait-frames";
 import type { ChainStampId } from "@/lib/constants";
+import type { ArchetypeCategory } from "@/lib/identity/banks";
 import type { ProcessedImage } from "@/lib/image/types";
+import { cn } from "@/lib/utils";
 import { AuthorizationOverlay } from "./AuthorizationOverlay";
 import { DownloadShareBar } from "./DownloadShareBar";
 import { PassCanvas } from "./PassCanvas";
 
 type GenerationStageProps = {
   image: ProcessedImage;
-  values: { name: string; stack: string; chainStamps: ChainStampId[] };
+  values: { name: string; stack: string; chainStamps: ChainStampId[]; domain: ArchetypeCategory };
   onStartOver: () => void;
 };
 
@@ -120,7 +122,21 @@ export function GenerationStage({ image, values, onStartOver }: GenerationStageP
 
   return (
     <div className="flex w-full flex-col gap-6">
-      <div className="relative aspect-20/13 w-full overflow-hidden sm:aspect-auto sm:overflow-visible">
+      <div
+        className={cn(
+          "relative w-full",
+          // Only needed to give the ceremony overlay a stable box before
+          // `identity` exists and the canvases have their own intrinsic
+          // size — see the `!revealed` guard on AuthorizationOverlay
+          // below. Left on unconditionally, this clipped the PFP square
+          // on mobile: below `sm` the grid stacks pass-then-pfp instead
+          // of side-by-side, so the combined stack is taller than a box
+          // sized for the pass card alone (verified by actually
+          // rendering it at a phone width — the PFP was silently cut off
+          // by `overflow-hidden`, not just visually cramped).
+          !revealed && "aspect-20/13 overflow-hidden sm:aspect-auto sm:overflow-visible",
+        )}
+      >
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-[1fr_auto]">
           {identity ? (
             <>
