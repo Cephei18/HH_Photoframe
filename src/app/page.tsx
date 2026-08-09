@@ -15,12 +15,12 @@ export default function Home() {
             priority
             className="h-8 w-auto sm:h-9"
           />
-          <div className="border-line-strong text-ink-soft flex h-14 w-14 shrink-0 -rotate-[9deg] items-center justify-center rounded-full border text-center font-mono text-[8px] leading-tight">
-            <span>
-              <b className="text-stamp block text-[9px] tracking-wide">HH·GOA</b>
-              {EVENT.dateRange.split(" ").slice(0, 2).join(" ")}
-            </span>
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element -- a small static SVG credit mark, no optimization needed */}
+          <img
+            src="/brand/247pm-studio.svg"
+            alt={ORGANIZER.name}
+            className="h-8 w-auto shrink-0 sm:h-9"
+          />
         </div>
       </header>
 
